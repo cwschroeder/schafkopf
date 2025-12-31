@@ -62,13 +62,15 @@ export function useBavarianSpeech() {
   }, []);
 
   const speakDu = useCallback(() => {
-    speak(DU_GESAGT.speech, 1.2);
-    return DU_GESAGT.text;
+    const phrase = randomPhrase(DU_GESAGT);
+    speak(phrase.speech, 1.2);
+    return phrase.text;
   }, []);
 
   const speakRe = useCallback(() => {
-    speak(RE_GESAGT.speech, 1.2);
-    return RE_GESAGT.text;
+    const phrase = randomPhrase(RE_GESAGT);
+    speak(phrase.speech, 1.2);
+    return phrase.text;
   }, []);
 
   return {
