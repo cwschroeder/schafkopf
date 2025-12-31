@@ -37,6 +37,7 @@ export default function GamePage() {
   const [preSelectedCard, setPreSelectedCard] = useState<string | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [speechBubble, setSpeechBubble] = useState<{ text: string; playerId: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false); // Für sofortiges Button-Feedback
 
   // Bayerische Sprachausgabe
   const { speakAnsage, speakStichGewonnen, ensureAudioReady } = useBavarianSpeech();
@@ -291,25 +292,33 @@ export default function GamePage() {
   };
 
   // Legen-Entscheidung
-  const handleLegen = async (willLegen: boolean) => {
+  const handleLegen = (willLegen: boolean) => {
+    if (isLoading) return;
+    setIsLoading(true);
     ensureAudioReady();
-    // Sofort API aufrufen, kein Warten
     fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'legen', roomId, playerId, willLegen }),
-    }).then(() => reloadGameState());
+    }).finally(() => {
+      reloadGameState();
+      setIsLoading(false);
+    });
   };
 
   // Ansage machen
-  const handleAnsage = async (ansage: Ansage, gesuchteAss?: Farbe) => {
+  const handleAnsage = (ansage: Ansage, gesuchteAss?: Farbe) => {
+    if (isLoading) return;
+    setIsLoading(true);
     ensureAudioReady();
-    // Sofort API aufrufen, kein Warten
     fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ansage', roomId, playerId, ansage, gesuchteAss }),
-    }).then(() => reloadGameState());
+    }).finally(() => {
+      reloadGameState();
+      setIsLoading(false);
+    });
   };
 
   // Karte spielen
@@ -317,7 +326,6 @@ export default function GamePage() {
     ensureAudioReady();
     setSelectedCard(null);
     setPreSelectedCard(null);
-    // Sofort API aufrufen, kein Warten
     fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

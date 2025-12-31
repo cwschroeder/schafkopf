@@ -2,10 +2,11 @@
 
 interface GameLegenProps {
   onLegen: (willLegen: boolean) => void;
-  kartenAnzahl: number; // Wieviele Karten der Spieler sieht
+  kartenAnzahl: number;
+  isLoading?: boolean;
 }
 
-export default function GameLegen({ onLegen, kartenAnzahl }: GameLegenProps) {
+export default function GameLegen({ onLegen, kartenAnzahl, isLoading = false }: GameLegenProps) {
   const containerStyle = {
     background: 'linear-gradient(135deg, #3e2723 0%, #4e342e 100%)',
     border: '2px solid rgba(139,90,43,0.5)',
@@ -32,15 +33,17 @@ export default function GameLegen({ onLegen, kartenAnzahl }: GameLegenProps) {
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onLegen(true)}
-          className="btn btn-primary flex items-center justify-center gap-2 py-3 text-lg"
+          disabled={isLoading}
+          className={`btn btn-primary flex items-center justify-center gap-2 py-3 text-lg ${isLoading ? 'opacity-50' : ''}`}
         >
-          Legen!
+          {isLoading ? '...' : 'Legen!'}
         </button>
         <button
           onClick={() => onLegen(false)}
-          className="btn btn-secondary flex items-center justify-center gap-2 py-3 text-lg"
+          disabled={isLoading}
+          className={`btn btn-secondary flex items-center justify-center gap-2 py-3 text-lg ${isLoading ? 'opacity-50' : ''}`}
         >
-          Nein
+          {isLoading ? '...' : 'Nein'}
         </button>
       </div>
     </div>
