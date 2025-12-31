@@ -98,18 +98,31 @@ export default function GamePage() {
 
   // Pusher abonnieren
   useEffect(() => {
-    if (!playerId) return;
+    if (!playerId || !playerName) return;
 
-    const pusher = getPusherClient();
+    const pusher = getPusherClient(playerId, playerName);
     if (!pusher) {
       console.warn('Pusher nicht verfügbar - Polling-Fallback aktiv');
-      // Polling-Fallback wenn kein Pusher
-      const interval = setInterval(() => {
-        fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
-          .then(res => res.json())
-          .then(state => { if (state) setGameState(state); })
-          .catch(() => {});
-      }, 2000);
+      // Polling-Fallback wenn kein Pusher - alle 1.5 Sekunden
+      const interval = setInterval(async () => {
+        // Raum-State laden (für Waiting Room)
+        try {
+          const roomRes = await fetch(`/api/rooms?roomId=${roomId}`);
+          if (roomRes.ok) {
+            const room = await roomRes.json();
+            setWaitingRoom(room);
+            setCurrentRoom(room);
+          }
+        } catch {}
+        // Game-State laden (für laufendes Spiel)
+        try {
+          const gameRes = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+          if (gameRes.ok) {
+            const state = await gameRes.json();
+            setGameState(state);
+          }
+        } catch {}
+      }, 1500);
       return () => clearInterval(interval);
     }
     const channel = pusher.subscribe(roomChannel(roomId));
@@ -213,7 +226,7 @@ export default function GamePage() {
       channel.unbind_all();
       pusher.unsubscribe(roomChannel(roomId));
     };
-  }, [playerId, roomId, setGameState, speakAnsage, speakStichGewonnen]);
+  }, [playerId, playerName, roomId, setGameState, setWaitingRoom, setCurrentRoom, speakAnsage, speakStichGewonnen]);
 
   // Raum verlassen
   const leaveRoom = async () => {
@@ -227,6 +240,25 @@ export default function GamePage() {
     router.push('/lobby');
   };
 
+  // Raum-State neu laden
+  const reloadRoomState = async () => {
+    const res = await fetch(`/api/rooms?roomId=${roomId}`);
+    if (res.ok) {
+      const room = await res.json();
+      setWaitingRoom(room);
+      setCurrentRoom(room);
+    }
+  };
+
+  // Game-State neu laden
+  const reloadGameState = async () => {
+    const res = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+    if (res.ok) {
+      const state = await res.json();
+      setGameState(state);
+    }
+  };
+
   // Ready-Status setzen
   const toggleReady = async () => {
     const newReady = !isReady;
@@ -236,6 +268,7 @@ export default function GamePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ready', roomId, playerId, ready: newReady }),
     });
+    await reloadRoomState();
   };
 
   // Bots hinzufügen
@@ -245,6 +278,7 @@ export default function GamePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'addBots', roomId }),
     });
+    await reloadRoomState();
   };
 
   // Spiel starten
@@ -254,6 +288,9 @@ export default function GamePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'start', roomId }),
     });
+    // Nach Start: Game-State laden
+    await new Promise(r => setTimeout(r, 500));
+    await reloadGameState();
   };
 
   // Legen-Entscheidung
@@ -263,6 +300,9 @@ export default function GamePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'legen', roomId, playerId, willLegen }),
     });
+    // Warten auf Bot-Aktionen und State laden
+    await new Promise(r => setTimeout(r, 1000));
+    await reloadGameState();
   };
 
   // Ansage machen
@@ -272,6 +312,9 @@ export default function GamePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ansage', roomId, playerId, ansage, gesuchteAss }),
     });
+    // Warten auf Bot-Ansagen und State laden
+    await new Promise(r => setTimeout(r, 2000));
+    await reloadGameState();
   };
 
   // Karte spielen
@@ -282,7 +325,15 @@ export default function GamePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'spielzug', roomId, playerId, karteId }),
     });
-  }, [roomId, playerId, setSelectedCard]);
+    // Warten auf eventuelle Stich-Auswertung und Bot-Züge
+    await new Promise(r => setTimeout(r, 1500));
+    // State neu laden
+    const res = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+    if (res.ok) {
+      const state = await res.json();
+      setGameState(state);
+    }
+  }, [roomId, playerId, setSelectedCard, setGameState]);
 
   // Auto-Play: Wenn ich am Zug bin und eine Karte vorausgewählt habe
   useEffect(() => {

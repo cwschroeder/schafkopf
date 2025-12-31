@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
     const socketId = formData.get('socket_id') as string;
     const channelName = formData.get('channel_name') as string;
 
-    // User-Info aus Cookies oder Headers
-    const playerId = request.headers.get('x-player-id') || 'anonymous';
-    const playerName = request.headers.get('x-player-name') || 'Gast';
+    // User-Info aus FormData-Params (von Pusher-Client gesendet)
+    const playerId = formData.get('playerId') as string || 'anonymous-' + Date.now();
+    const playerName = formData.get('playerName') as string || 'Gast';
 
     if (channelName.startsWith('presence-')) {
       // Presence Channel - mit User-Daten

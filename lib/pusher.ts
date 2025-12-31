@@ -29,23 +29,45 @@ export const pusherServer = {
   authorizeChannel: (...args: Parameters<Pusher['authorizeChannel']>) => getPusherServer().authorizeChannel(...args),
 };
 
-// Client-seitige Pusher-Instanz (Singleton)
+// Client-seitige Pusher-Instanz (mit dynamischen Auth-Params)
 let pusherClientInstance: PusherClient | null = null;
+let currentPlayerId: string | null = null;
+let currentPlayerName: string | null = null;
 
-export function getPusherClient(): PusherClient | null {
+export function getPusherClient(playerId?: string, playerName?: string): PusherClient | null {
   if (typeof window === 'undefined') {
     return null;
   }
 
-  if (!pusherClientInstance) {
-    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+  const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+  const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
-    if (!key || !cluster) {
-      console.warn('Pusher nicht konfiguriert - Echtzeit-Features deaktiviert');
-      return null;
+  if (!key || !cluster) {
+    console.warn('Pusher nicht konfiguriert - Echtzeit-Features deaktiviert');
+    return null;
+  }
+
+  // Neuen Client erstellen wenn sich Player-Info ändert
+  if (playerId && playerName && (playerId !== currentPlayerId || playerName !== currentPlayerName)) {
+    if (pusherClientInstance) {
+      pusherClientInstance.disconnect();
     }
+    currentPlayerId = playerId;
+    currentPlayerName = playerName;
+    pusherClientInstance = new PusherClient(key, {
+      cluster,
+      authEndpoint: '/api/pusher/auth',
+      auth: {
+        params: {
+          playerId,
+          playerName,
+        },
+      },
+    });
+  }
 
+  // Falls noch kein Client und keine Player-Info, trotzdem erstellen (für Lobby etc.)
+  if (!pusherClientInstance && !playerId) {
     pusherClientInstance = new PusherClient(key, {
       cluster,
       authEndpoint: '/api/pusher/auth',

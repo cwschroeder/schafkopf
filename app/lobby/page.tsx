@@ -34,18 +34,18 @@ export default function Lobby() {
 
   // Pusher abonnieren
   useEffect(() => {
-    if (!playerId) return;
+    if (!playerId || !playerName) return;
 
-    const pusher = getPusherClient();
+    const pusher = getPusherClient(playerId, playerName);
     if (!pusher) {
       console.warn('Pusher nicht verfügbar - Polling-Fallback für Lobby');
       // Polling-Fallback
       const interval = setInterval(() => {
         fetch('/api/rooms')
           .then(res => res.json())
-          .then(data => { if (data.rooms) setRooms(data.rooms); })
+          .then(data => { if (Array.isArray(data)) setRooms(data); })
           .catch(() => {});
-      }, 3000);
+      }, 2000);
       return () => clearInterval(interval);
     }
 
@@ -67,7 +67,7 @@ export default function Lobby() {
       channel.unbind_all();
       pusher.unsubscribe(lobbyChannel());
     };
-  }, [playerId, addRoom, updateRoom, removeRoom, setRooms]);
+  }, [playerId, playerName, addRoom, updateRoom, removeRoom, setRooms]);
 
   // Raum erstellen
   const createRoom = async () => {
