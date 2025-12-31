@@ -1,15 +1,14 @@
-// In-Memory Raum-Verwaltung (in Produktion: Redis/DB)
+// Raum-Verwaltung mit Vercel KV für Produktion
 
+import { kv } from '@vercel/kv';
 import { Raum } from './schafkopf/types';
 
-// Globale Referenz um Hot-Reload zu überleben
-declare global {
-  // eslint-disable-next-line no-var
-  var __activeRooms: Map<string, Raum> | undefined;
-}
+const ROOM_PREFIX = 'room:';
+const ROOMS_LIST_KEY = 'rooms:list';
 
-export const activeRooms = globalThis.__activeRooms ?? new Map<string, Raum>();
-globalThis.__activeRooms = activeRooms;
+// Fallback für lokale Entwicklung ohne KV
+const localRooms = new Map<string, Raum>();
+const isLocal = !process.env.KV_REST_API_URL;
 
 export function generateRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -19,7 +18,7 @@ export function generatePlayerId(): string {
   return 'p_' + Math.random().toString(36).substring(2, 12);
 }
 
-export function createRoom(name: string, erstellerId: string, erstellerName: string): Raum {
+export async function createRoom(name: string, erstellerId: string, erstellerName: string): Promise<Raum> {
   const room: Raum = {
     id: generateRoomId(),
     name,
@@ -30,17 +29,23 @@ export function createRoom(name: string, erstellerId: string, erstellerName: str
     erstelltAm: Date.now(),
   };
 
-  activeRooms.set(room.id, room);
+  if (isLocal) {
+    localRooms.set(room.id, room);
+  } else {
+    await kv.set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
+    await kv.sadd(ROOMS_LIST_KEY, room.id);
+  }
+
   return room;
 }
 
-export function joinRoom(
+export async function joinRoom(
   roomId: string,
   playerId: string,
   playerName: string,
   isBot: boolean = false
-): Raum | null {
-  const room = activeRooms.get(roomId);
+): Promise<Raum | null> {
+  const room = await getRoom(roomId);
   if (!room) return null;
   if (room.spieler.length >= 4) return null;
   if (room.status !== 'offen') return null;
@@ -56,17 +61,18 @@ export function joinRoom(
     room.status = 'voll';
   }
 
+  await saveRoom(room);
   return room;
 }
 
-export function leaveRoom(roomId: string, playerId: string): Raum | null {
-  const room = activeRooms.get(roomId);
+export async function leaveRoom(roomId: string, playerId: string): Promise<Raum | null> {
+  const room = await getRoom(roomId);
   if (!room) return null;
 
   room.spieler = room.spieler.filter(s => s.id !== playerId);
 
   if (room.spieler.length === 0) {
-    activeRooms.delete(roomId);
+    await deleteRoom(roomId);
     return null;
   }
 
@@ -77,22 +83,24 @@ export function leaveRoom(roomId: string, playerId: string): Raum | null {
     room.ersteller = room.spieler[0].id;
   }
 
+  await saveRoom(room);
   return room;
 }
 
-export function setPlayerReady(roomId: string, playerId: string, ready: boolean): Raum | null {
-  const room = activeRooms.get(roomId);
+export async function setPlayerReady(roomId: string, playerId: string, ready: boolean): Promise<Raum | null> {
+  const room = await getRoom(roomId);
   if (!room) return null;
 
   const player = room.spieler.find(s => s.id === playerId);
   if (!player) return null;
 
   player.ready = ready;
+  await saveRoom(room);
   return room;
 }
 
-export function addBotsToRoom(roomId: string): Raum | null {
-  const room = activeRooms.get(roomId);
+export async function addBotsToRoom(roomId: string): Promise<Raum | null> {
+  const room = await getRoom(roomId);
   if (!room) return null;
 
   const botNames = ['Bot Max', 'Bot Sepp', 'Bot Vroni', 'Bot Hans'];
@@ -106,26 +114,59 @@ export function addBotsToRoom(roomId: string): Raum | null {
   }
 
   room.status = 'voll';
+  await saveRoom(room);
   return room;
 }
 
-export function startGame(roomId: string): boolean {
-  const room = activeRooms.get(roomId);
+export async function startGame(roomId: string): Promise<boolean> {
+  const room = await getRoom(roomId);
   if (!room) return false;
   if (room.spieler.length !== 4) return false;
 
   room.status = 'laeuft';
+  await saveRoom(room);
   return true;
 }
 
-export function getRoom(roomId: string): Raum | undefined {
-  return activeRooms.get(roomId);
+export async function getRoom(roomId: string): Promise<Raum | undefined> {
+  if (isLocal) {
+    return localRooms.get(roomId);
+  }
+  const room = await kv.get<Raum>(`${ROOM_PREFIX}${roomId}`);
+  return room || undefined;
 }
 
-export function getAllRooms(): Raum[] {
-  return Array.from(activeRooms.values()).filter(r => r.status !== 'laeuft');
+export async function getAllRooms(): Promise<Raum[]> {
+  if (isLocal) {
+    return Array.from(localRooms.values()).filter(r => r.status !== 'laeuft');
+  }
+
+  const roomIds = await kv.smembers(ROOMS_LIST_KEY);
+  if (!roomIds || roomIds.length === 0) return [];
+
+  const rooms: Raum[] = [];
+  for (const id of roomIds) {
+    const room = await kv.get<Raum>(`${ROOM_PREFIX}${id}`);
+    if (room && room.status !== 'laeuft') {
+      rooms.push(room);
+    }
+  }
+  return rooms;
 }
 
-export function deleteRoom(roomId: string): void {
-  activeRooms.delete(roomId);
+export async function deleteRoom(roomId: string): Promise<void> {
+  if (isLocal) {
+    localRooms.delete(roomId);
+  } else {
+    await kv.del(`${ROOM_PREFIX}${roomId}`);
+    await kv.srem(ROOMS_LIST_KEY, roomId);
+  }
+}
+
+async function saveRoom(room: Raum): Promise<void> {
+  if (isLocal) {
+    localRooms.set(room.id, room);
+  } else {
+    await kv.set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
+  }
 }

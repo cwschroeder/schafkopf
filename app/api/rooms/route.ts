@@ -13,7 +13,7 @@ import {
   generatePlayerId,
 } from '@/lib/rooms';
 import { getPusherServer, EVENTS, lobbyChannel, roomChannel } from '@/lib/pusher';
-import { erstelleSpiel } from '@/lib/schafkopf/game-state';
+import { erstelleSpiel, saveGameState } from '@/lib/schafkopf/game-state';
 
 // Helper für optionales Pusher-Triggern
 async function triggerPusher(channel: string, event: string, data: unknown) {
@@ -27,21 +27,26 @@ async function triggerPusher(channel: string, event: string, data: unknown) {
 
 // GET - Alle Räume auflisten oder einzelnen Raum abrufen
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const roomId = searchParams.get('roomId');
+  try {
+    const { searchParams } = new URL(request.url);
+    const roomId = searchParams.get('roomId');
 
-  if (roomId) {
-    // Einzelnen Raum abrufen
-    const room = getRoom(roomId);
-    if (!room) {
-      return NextResponse.json({ error: 'Raum nicht gefunden' }, { status: 404 });
+    if (roomId) {
+      // Einzelnen Raum abrufen
+      const room = await getRoom(roomId);
+      if (!room) {
+        return NextResponse.json({ error: 'Raum nicht gefunden' }, { status: 404 });
+      }
+      return NextResponse.json(room);
     }
-    return NextResponse.json(room);
-  }
 
-  // Alle offenen Räume
-  const rooms = getAllRooms();
-  return NextResponse.json(rooms);
+    // Alle offenen Räume
+    const rooms = await getAllRooms();
+    return NextResponse.json(rooms);
+  } catch (error) {
+    console.error('Rooms GET error:', error);
+    return NextResponse.json({ error: 'Server-Fehler' }, { status: 500 });
+  }
 }
 
 // POST - Raum erstellen oder beitreten
@@ -53,7 +58,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'create': {
         const id = playerId || generatePlayerId();
-        const room = createRoom(roomName || 'Schafkopf-Tisch', id, playerName);
+        const room = await createRoom(roomName || 'Schafkopf-Tisch', id, playerName);
 
         await triggerPusher(lobbyChannel(), EVENTS.ROOM_CREATED, room);
 
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
 
       case 'join': {
         const id = playerId || generatePlayerId();
-        const room = joinRoom(roomId, id, playerName);
+        const room = await joinRoom(roomId, id, playerName);
 
         if (!room) {
           return NextResponse.json({ error: 'Raum nicht gefunden oder voll' }, { status: 400 });
@@ -81,7 +86,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'leave': {
-        const room = leaveRoom(roomId, playerId);
+        const room = await leaveRoom(roomId, playerId);
 
         if (room) {
           await Promise.all([
@@ -100,7 +105,7 @@ export async function POST(request: NextRequest) {
 
       case 'ready': {
         const { ready } = body;
-        const room = setPlayerReady(roomId, playerId, ready);
+        const room = await setPlayerReady(roomId, playerId, ready);
 
         if (!room) {
           return NextResponse.json({ error: 'Raum nicht gefunden' }, { status: 400 });
@@ -116,7 +121,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'addBots': {
-        const room = addBotsToRoom(roomId);
+        const room = await addBotsToRoom(roomId);
 
         if (!room) {
           return NextResponse.json({ error: 'Raum nicht gefunden' }, { status: 400 });
@@ -131,15 +136,15 @@ export async function POST(request: NextRequest) {
       }
 
       case 'start': {
-        const room = getRoom(roomId);
+        const room = await getRoom(roomId);
         if (!room || room.spieler.length !== 4) {
           return NextResponse.json({ error: 'Nicht genug Spieler' }, { status: 400 });
         }
 
         // Spiel starten
-        startGame(roomId);
+        await startGame(roomId);
 
-        // Game State erstellen
+        // Game State erstellen und speichern
         const gameState = erstelleSpiel(
           roomId,
           room.spieler.map(s => ({
@@ -148,6 +153,7 @@ export async function POST(request: NextRequest) {
             isBot: s.isBot,
           }))
         );
+        await saveGameState(gameState);
 
         await Promise.all([
           triggerPusher(lobbyChannel(), EVENTS.ROOM_UPDATED, room),

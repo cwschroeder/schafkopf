@@ -4,16 +4,45 @@ import { SpielState, Spieler, Spielart, Ansage, Karte, Stich, Farbe, SpielErgebn
 import { austeilen, zaehleAugen } from './cards';
 import { istTrumpf, stichGewinner, spielbareKarten, sortiereHand } from './rules';
 import { berechneErgebnis } from './scoring';
+import { kv } from '@vercel/kv';
 
-// Globale Referenz um Hot-Reload zu überleben
-declare global {
-  // eslint-disable-next-line no-var
-  var __activeGames: Map<string, SpielState> | undefined;
+const GAME_PREFIX = 'game:';
+const isLocal = !process.env.KV_REST_API_URL;
+
+// Lokaler Fallback für Entwicklung
+const localGames = new Map<string, SpielState>();
+
+// Wrapper für KV/lokalen Speicher
+export const activeGames = {
+  get: (key: string): SpielState | undefined => localGames.get(key),
+  set: (key: string, value: SpielState): void => { localGames.set(key, value); },
+  delete: (key: string): void => { localGames.delete(key); },
+};
+
+// Async Speicher-Funktionen
+export async function saveGameState(state: SpielState): Promise<void> {
+  if (isLocal) {
+    localGames.set(state.id, state);
+  } else {
+    await kv.set(`${GAME_PREFIX}${state.id}`, state, { ex: 3600 }); // 1h TTL
+  }
 }
 
-// In-Memory Speicher für aktive Spiele (in Produktion: Redis/DB)
-export const activeGames = globalThis.__activeGames ?? new Map<string, SpielState>();
-globalThis.__activeGames = activeGames;
+export async function loadGameState(roomId: string): Promise<SpielState | undefined> {
+  if (isLocal) {
+    return localGames.get(roomId);
+  }
+  const state = await kv.get<SpielState>(`${GAME_PREFIX}${roomId}`);
+  return state || undefined;
+}
+
+export async function deleteGameState(roomId: string): Promise<void> {
+  if (isLocal) {
+    localGames.delete(roomId);
+  } else {
+    await kv.del(`${GAME_PREFIX}${roomId}`);
+  }
+}
 
 /**
  * Erstellt ein neues Spiel
@@ -356,10 +385,17 @@ export function sageRe(state: SpielState, spielerId: string): SpielState {
 }
 
 /**
- * Holt den aktuellen Spielzustand
+ * Holt den aktuellen Spielzustand (sync für lokale Entwicklung)
  */
 export function getSpielState(raumId: string): SpielState | undefined {
-  return activeGames.get(raumId);
+  return localGames.get(raumId);
+}
+
+/**
+ * Holt den aktuellen Spielzustand (async für Produktion mit KV)
+ */
+export async function getSpielStateAsync(raumId: string): Promise<SpielState | undefined> {
+  return loadGameState(raumId);
 }
 
 /**
