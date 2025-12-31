@@ -5,9 +5,20 @@ import { SpielState, Karte, Ansage, Farbe } from './schafkopf/types';
 import { spielbareKarten, sortiereHand } from './schafkopf/rules';
 import { karteZuString, zaehleAugen, AUGEN } from './schafkopf/cards';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization - nur wenn OPENAI_API_KEY vorhanden
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 /**
  * Bot entscheidet über Spielansage
@@ -42,7 +53,7 @@ Antworte NUR mit einem JSON-Objekt:
 {"ansage": "weiter" | "sauspiel" | "wenz" | "geier" | "farbsolo-eichel" | "farbsolo-gras" | "farbsolo-herz" | "farbsolo-schellen", "gesuchteAss": "eichel" | "gras" | "schellen" (nur bei sauspiel)}`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
@@ -120,7 +131,7 @@ Strategie-Tipps:
 Antworte NUR mit der ID der Karte (z.B. "herz-ober"):`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
