@@ -103,7 +103,7 @@ export default function GamePage() {
     const pusher = getPusherClient(playerId, playerName);
     if (!pusher) {
       console.warn('Pusher nicht verfügbar - Polling-Fallback aktiv');
-      // Polling-Fallback wenn kein Pusher - alle 1.5 Sekunden
+      // Polling-Fallback wenn kein Pusher - jede Sekunde
       const interval = setInterval(async () => {
         // Raum-State laden (für Waiting Room)
         try {
@@ -122,7 +122,7 @@ export default function GamePage() {
             setGameState(state);
           }
         } catch {}
-      }, 1500);
+      }, 1000);
       return () => clearInterval(interval);
     }
     const channel = pusher.subscribe(roomChannel(roomId));
@@ -283,60 +283,47 @@ export default function GamePage() {
 
   // Spiel starten
   const startGame = async () => {
-    await fetch('/api/rooms', {
+    fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'start', roomId }),
-    });
-    // Nach Start: Game-State laden
-    await new Promise(r => setTimeout(r, 500));
-    await reloadGameState();
+    }).then(() => reloadGameState());
   };
 
   // Legen-Entscheidung
   const handleLegen = async (willLegen: boolean) => {
-    ensureAudioReady(); // Audio bei erster Interaktion entsperren
-    await fetch('/api/game', {
+    ensureAudioReady();
+    // Sofort API aufrufen, kein Warten
+    fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'legen', roomId, playerId, willLegen }),
-    });
-    // Warten auf Bot-Aktionen und State laden
-    await new Promise(r => setTimeout(r, 1000));
-    await reloadGameState();
+    }).then(() => reloadGameState());
   };
 
   // Ansage machen
   const handleAnsage = async (ansage: Ansage, gesuchteAss?: Farbe) => {
-    ensureAudioReady(); // Audio bei erster Interaktion entsperren
-    await fetch('/api/game', {
+    ensureAudioReady();
+    // Sofort API aufrufen, kein Warten
+    fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ansage', roomId, playerId, ansage, gesuchteAss }),
-    });
-    // Warten auf Bot-Ansagen und State laden
-    await new Promise(r => setTimeout(r, 2000));
-    await reloadGameState();
+    }).then(() => reloadGameState());
   };
 
   // Karte spielen
-  const handleCardPlay = useCallback(async (karteId: string) => {
-    ensureAudioReady(); // Audio bei erster Interaktion entsperren
+  const handleCardPlay = useCallback((karteId: string) => {
+    ensureAudioReady();
     setSelectedCard(null);
-    await fetch('/api/game', {
+    setPreSelectedCard(null);
+    // Sofort API aufrufen, kein Warten
+    fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'spielzug', roomId, playerId, karteId }),
-    });
-    // Warten auf eventuelle Stich-Auswertung und Bot-Züge
-    await new Promise(r => setTimeout(r, 1500));
-    // State neu laden
-    const res = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
-    if (res.ok) {
-      const state = await res.json();
-      setGameState(state);
-    }
-  }, [roomId, playerId, setSelectedCard, setGameState, ensureAudioReady]);
+    }).then(() => reloadGameState());
+  }, [roomId, playerId, setSelectedCard, ensureAudioReady]);
 
   // Auto-Play: Wenn ich am Zug bin und eine Karte vorausgewählt habe
   useEffect(() => {
