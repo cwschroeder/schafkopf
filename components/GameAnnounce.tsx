@@ -125,9 +125,9 @@ export default function GameAnnounce({
             WebkitTextFillColor: 'transparent',
           }}
         >
-          🐷 Welche Sau suchst du?
+          Welche Sau?
         </h3>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {moeglicheSauFarben.map(farbe => (
             <button
               key={farbe}
@@ -135,11 +135,7 @@ export default function GameAnnounce({
                 onAnsage('sauspiel', farbe);
                 setShowSauSelection(false);
               }}
-              className="flex items-center justify-center gap-3 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-              style={{
-                background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-                color: '#1a1a1a',
-              }}
+              className="btn btn-primary flex items-center justify-center gap-3 py-3 text-lg"
             >
               <FarbIcon farbe={farbe} size={24} />
               <span className="capitalize">{farbe}</span>-Sau
@@ -148,7 +144,7 @@ export default function GameAnnounce({
         </div>
         <button
           onClick={() => setShowSauSelection(false)}
-          className="btn btn-secondary text-sm"
+          className="btn btn-secondary py-3"
         >
           ← Zurück
         </button>
@@ -167,7 +163,7 @@ export default function GameAnnounce({
             WebkitTextFillColor: 'transparent',
           }}
         >
-          🎯 Welches Solo?
+          Welches Solo?
         </h3>
         <div className="grid grid-cols-2 gap-3">
           {(['eichel', 'gras', 'herz', 'schellen'] as Farbe[]).map(farbe => (
@@ -177,11 +173,7 @@ export default function GameAnnounce({
                 onAnsage(`farbsolo-${farbe}` as Ansage);
                 setShowSoloSelection(false);
               }}
-              className="flex flex-col items-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-              style={{
-                background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-                color: '#1a1a1a',
-              }}
+              className="btn btn-primary flex flex-col items-center gap-2 py-3 px-4"
             >
               <FarbIcon farbe={farbe} size={28} />
               <span className="capitalize text-sm">{farbe}</span>
@@ -190,7 +182,7 @@ export default function GameAnnounce({
         </div>
         <button
           onClick={() => setShowSoloSelection(false)}
-          className="btn btn-secondary text-sm"
+          className="btn btn-secondary py-3"
         >
           ← Zurück
         </button>
@@ -199,7 +191,7 @@ export default function GameAnnounce({
   }
 
   return (
-    <div className="rounded-xl p-3 flex flex-col gap-2 min-w-[260px]" style={containerStyle}>
+    <div className="rounded-xl p-4 flex flex-col gap-3 min-w-[260px]" style={containerStyle}>
       <h3
         className="text-lg font-bold text-center"
         style={{
@@ -208,44 +200,32 @@ export default function GameAnnounce({
           WebkitTextFillColor: 'transparent',
         }}
       >
-        🃏 Was spielst du?
+        Was spielst du?
       </h3>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {kannSauspielSagen && (
           <button
             onClick={() => setShowSauSelection(true)}
-            className="flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-              color: '#1a1a1a',
-            }}
+            className="btn btn-primary flex items-center justify-center gap-2 py-3 text-base"
           >
-            🐷 Sauspiel
+            Sauspiel
           </button>
         )}
 
         {kannWenzOderGeierSagen && (
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => onAnsage('wenz')}
-              className="flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-              style={{
-                background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-                color: '#1a1a1a',
-              }}
+              className="btn btn-primary flex items-center justify-center gap-2 py-3 text-base"
             >
-              👤 Wenz
+              Wenz
             </button>
             <button
               onClick={() => onAnsage('geier')}
-              className="flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-              style={{
-                background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-                color: '#1a1a1a',
-              }}
+              className="btn btn-primary flex items-center justify-center gap-2 py-3 text-base"
             >
-              🦅 Geier
+              Geier
             </button>
           </div>
         )}
@@ -253,25 +233,16 @@ export default function GameAnnounce({
         {kannSoloSagen && (
           <button
             onClick={() => setShowSoloSelection(true)}
-            className="flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-              color: '#1a1a1a',
-            }}
+            className="btn btn-primary flex items-center justify-center gap-2 py-3 text-base"
           >
-            🎯 Farbsolo
+            Farbsolo
           </button>
         )}
       </div>
 
       <button
         onClick={() => onAnsage('weiter')}
-        className="py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-        style={{
-          background: 'linear-gradient(135deg, #5d4037 0%, #4e342e 100%)',
-          color: '#e5d3b3',
-          border: '1px solid rgba(139,90,43,0.5)',
-        }}
+        className="btn btn-secondary py-3 text-base"
       >
         Weiter (Passen)
       </button>

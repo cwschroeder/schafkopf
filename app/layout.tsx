@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Schafkopf Online',
   description: 'Spiele Schafkopf mit Freunden oder gegen KI',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -26,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de">
-      <body className="min-h-screen text-white">
+    <html lang="de" className="h-full">
+      <body className="h-full min-h-dvh text-white overflow-hidden">
         {children}
       </body>
     </html>

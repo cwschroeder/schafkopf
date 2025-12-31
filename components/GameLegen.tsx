@@ -29,25 +29,16 @@ export default function GameLegen({ onLegen, kartenAnzahl }: GameLegenProps) {
         {kartenAnzahl} Karten gesehen - Einsatz verdoppeln?
       </p>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onLegen(true)}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-          style={{
-            background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-            color: '#1a1a1a',
-          }}
+          className="btn btn-primary flex items-center justify-center gap-2 py-3 text-lg"
         >
           Legen!
         </button>
         <button
           onClick={() => onLegen(false)}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-          style={{
-            background: 'linear-gradient(135deg, #5d4037 0%, #4e342e 100%)',
-            color: '#e5d3b3',
-            border: '1px solid rgba(139,90,43,0.5)',
-          }}
+          className="btn btn-secondary flex items-center justify-center gap-2 py-3 text-lg"
         >
           Nein
         </button>

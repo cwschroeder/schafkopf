@@ -58,7 +58,10 @@ export default function Table({
     : [];
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto" style={{ aspectRatio: '5/4' }}>
+    <div
+      className="relative w-full max-w-2xl mx-auto game-table"
+      style={{ aspectRatio: 'auto', minHeight: 'min(60vh, 400px)', maxHeight: '75vh' }}
+    >
       {/* Holztisch-Hintergrund */}
       <div
         className="absolute inset-0 rounded-3xl"

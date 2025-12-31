@@ -523,11 +523,11 @@ export default function GamePage() {
 
     return (
       <main
-        className="min-h-screen p-2 sm:p-4 flex flex-col"
+        className="h-dvh p-1 sm:p-2 flex flex-col overflow-hidden"
         style={{ touchAction: 'manipulation' }} // Verhindert Zoom bei Double-Tap global
       >
         {/* Spieltisch - kompakt für mehr Kartenplatz */}
-        <div className="flex-1 flex items-center justify-center relative py-2">
+        <div className="flex-1 flex items-center justify-center relative">
           <Table
             state={gameState}
             myPlayerId={playerId}
