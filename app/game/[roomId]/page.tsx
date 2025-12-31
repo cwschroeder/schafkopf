@@ -101,6 +101,17 @@ export default function GamePage() {
     if (!playerId) return;
 
     const pusher = getPusherClient();
+    if (!pusher) {
+      console.warn('Pusher nicht verfügbar - Polling-Fallback aktiv');
+      // Polling-Fallback wenn kein Pusher
+      const interval = setInterval(() => {
+        fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
+          .then(res => res.json())
+          .then(state => { if (state) setGameState(state); })
+          .catch(() => {});
+      }, 2000);
+      return () => clearInterval(interval);
+    }
     const channel = pusher.subscribe(roomChannel(roomId));
 
     // Raum-Events

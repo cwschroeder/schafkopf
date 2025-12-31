@@ -3,31 +3,53 @@
 import Pusher from 'pusher';
 import PusherClient from 'pusher-js';
 
-// Server-seitige Pusher-Instanz
-export const pusherServer = new Pusher({
-  appId: process.env.PUSHER_APP_ID!,
-  key: process.env.PUSHER_KEY!,
-  secret: process.env.PUSHER_SECRET!,
-  cluster: process.env.PUSHER_CLUSTER!,
-  useTLS: true,
-});
+// Server-seitige Pusher-Instanz (Lazy Initialization)
+let pusherServerInstance: Pusher | null = null;
+
+export function getPusherServer(): Pusher {
+  if (!pusherServerInstance) {
+    if (!process.env.PUSHER_APP_ID || !process.env.PUSHER_KEY ||
+        !process.env.PUSHER_SECRET || !process.env.PUSHER_CLUSTER) {
+      throw new Error('Pusher Server-Konfiguration fehlt. Bitte Umgebungsvariablen setzen.');
+    }
+    pusherServerInstance = new Pusher({
+      appId: process.env.PUSHER_APP_ID,
+      key: process.env.PUSHER_KEY,
+      secret: process.env.PUSHER_SECRET,
+      cluster: process.env.PUSHER_CLUSTER,
+      useTLS: true,
+    });
+  }
+  return pusherServerInstance;
+}
+
+// Legacy export für Kompatibilität (wird bei erstem Zugriff initialisiert)
+export const pusherServer = {
+  trigger: (...args: Parameters<Pusher['trigger']>) => getPusherServer().trigger(...args),
+  authorizeChannel: (...args: Parameters<Pusher['authorizeChannel']>) => getPusherServer().authorizeChannel(...args),
+};
 
 // Client-seitige Pusher-Instanz (Singleton)
 let pusherClientInstance: PusherClient | null = null;
 
-export function getPusherClient(): PusherClient {
+export function getPusherClient(): PusherClient | null {
   if (typeof window === 'undefined') {
-    throw new Error('Pusher Client nur im Browser verfügbar');
+    return null;
   }
 
   if (!pusherClientInstance) {
-    pusherClientInstance = new PusherClient(
-      process.env.NEXT_PUBLIC_PUSHER_KEY!,
-      {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-        authEndpoint: '/api/pusher/auth',
-      }
-    );
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+
+    if (!key || !cluster) {
+      console.warn('Pusher nicht konfiguriert - Echtzeit-Features deaktiviert');
+      return null;
+    }
+
+    pusherClientInstance = new PusherClient(key, {
+      cluster,
+      authEndpoint: '/api/pusher/auth',
+    });
   }
 
   return pusherClientInstance;

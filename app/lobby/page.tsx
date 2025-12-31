@@ -37,6 +37,18 @@ export default function Lobby() {
     if (!playerId) return;
 
     const pusher = getPusherClient();
+    if (!pusher) {
+      console.warn('Pusher nicht verfügbar - Polling-Fallback für Lobby');
+      // Polling-Fallback
+      const interval = setInterval(() => {
+        fetch('/api/rooms')
+          .then(res => res.json())
+          .then(data => { if (data.rooms) setRooms(data.rooms); })
+          .catch(() => {});
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+
     const channel = pusher.subscribe(lobbyChannel());
 
     channel.bind(EVENTS.ROOM_CREATED, (room: Raum) => {
@@ -55,7 +67,7 @@ export default function Lobby() {
       channel.unbind_all();
       pusher.unsubscribe(lobbyChannel());
     };
-  }, [playerId, addRoom, updateRoom, removeRoom]);
+  }, [playerId, addRoom, updateRoom, removeRoom, setRooms]);
 
   // Raum erstellen
   const createRoom = async () => {
