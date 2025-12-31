@@ -4,21 +4,28 @@ import { SpielState, Spieler, Spielart, Ansage, Karte, Stich, Farbe, SpielErgebn
 import { austeilen, zaehleAugen } from './cards';
 import { istTrumpf, stichGewinner, spielbareKarten, sortiereHand } from './rules';
 import { berechneErgebnis } from './scoring';
-import { Redis } from '@upstash/redis';
+import { createClient, RedisClientType } from 'redis';
 
 const GAME_PREFIX = 'game:';
-const isLocal = !process.env.UPSTASH_REDIS_REST_URL;
+const isLocal = !process.env.REDIS_URL;
 
 // Redis-Client (Lazy Init)
-let redis: Redis | null = null;
-function getRedis(): Redis {
-  if (!redis) {
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-  }
-  return redis;
+let redis: RedisClientType | null = null;
+let redisConnecting: Promise<RedisClientType> | null = null;
+
+async function getRedis(): Promise<RedisClientType> {
+  if (redis?.isOpen) return redis;
+
+  if (redisConnecting) return redisConnecting;
+
+  redisConnecting = (async () => {
+    redis = createClient({ url: process.env.REDIS_URL });
+    redis.on('error', (err) => console.error('Redis Error:', err));
+    await redis.connect();
+    return redis;
+  })();
+
+  return redisConnecting;
 }
 
 // Lokaler Fallback für Entwicklung
@@ -36,7 +43,8 @@ export async function saveGameState(state: SpielState): Promise<void> {
   if (isLocal) {
     localGames.set(state.id, state);
   } else {
-    await getRedis().set(`${GAME_PREFIX}${state.id}`, state, { ex: 3600 }); // 1h TTL
+    const r = await getRedis();
+    await r.set(`${GAME_PREFIX}${state.id}`, JSON.stringify(state), { EX: 3600 }); // 1h TTL
   }
 }
 
@@ -44,15 +52,17 @@ export async function loadGameState(roomId: string): Promise<SpielState | undefi
   if (isLocal) {
     return localGames.get(roomId);
   }
-  const state = await getRedis().get<SpielState>(`${GAME_PREFIX}${roomId}`);
-  return state || undefined;
+  const r = await getRedis();
+  const data = await r.get(`${GAME_PREFIX}${roomId}`);
+  return data ? JSON.parse(data) : undefined;
 }
 
 export async function deleteGameState(roomId: string): Promise<void> {
   if (isLocal) {
     localGames.delete(roomId);
   } else {
-    await getRedis().del(`${GAME_PREFIX}${roomId}`);
+    const r = await getRedis();
+    await r.del(`${GAME_PREFIX}${roomId}`);
   }
 }
 

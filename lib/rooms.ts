@@ -1,6 +1,6 @@
-// Raum-Verwaltung mit Upstash Redis für Produktion
+// Raum-Verwaltung mit Redis für Produktion
 
-import { Redis } from '@upstash/redis';
+import { createClient, RedisClientType } from 'redis';
 import { Raum } from './schafkopf/types';
 
 const ROOM_PREFIX = 'room:';
@@ -8,18 +8,25 @@ const ROOMS_LIST_KEY = 'rooms:list';
 
 // Fallback für lokale Entwicklung ohne Redis
 const localRooms = new Map<string, Raum>();
-const isLocal = !process.env.UPSTASH_REDIS_REST_URL;
+const isLocal = !process.env.REDIS_URL;
 
-// Redis-Client (Lazy Init)
-let redis: Redis | null = null;
-function getRedis(): Redis {
-  if (!redis) {
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-  }
-  return redis;
+// Redis-Client (Lazy Init mit Connection Pooling)
+let redis: RedisClientType | null = null;
+let redisConnecting: Promise<RedisClientType> | null = null;
+
+async function getRedis(): Promise<RedisClientType> {
+  if (redis?.isOpen) return redis;
+
+  if (redisConnecting) return redisConnecting;
+
+  redisConnecting = (async () => {
+    redis = createClient({ url: process.env.REDIS_URL });
+    redis.on('error', (err) => console.error('Redis Error:', err));
+    await redis.connect();
+    return redis;
+  })();
+
+  return redisConnecting;
 }
 
 export function generateRoomId(): string {
@@ -44,9 +51,9 @@ export async function createRoom(name: string, erstellerId: string, erstellerNam
   if (isLocal) {
     localRooms.set(room.id, room);
   } else {
-    const r = getRedis();
-    await r.set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
-    await r.sadd(ROOMS_LIST_KEY, room.id);
+    const r = await getRedis();
+    await r.set(`${ROOM_PREFIX}${room.id}`, JSON.stringify(room), { EX: 3600 });
+    await r.sAdd(ROOMS_LIST_KEY, room.id);
   }
 
   return room;
@@ -63,7 +70,6 @@ export async function joinRoom(
   if (room.spieler.length >= 4) return null;
   if (room.status !== 'offen') return null;
 
-  // Prüfen ob Spieler bereits im Raum
   if (room.spieler.some(s => s.id === playerId)) {
     return room;
   }
@@ -91,7 +97,6 @@ export async function leaveRoom(roomId: string, playerId: string): Promise<Raum 
 
   room.status = 'offen';
 
-  // Neuer Ersteller wenn der alte gegangen ist
   if (room.ersteller === playerId) {
     room.ersteller = room.spieler[0].id;
   }
@@ -145,8 +150,9 @@ export async function getRoom(roomId: string): Promise<Raum | undefined> {
   if (isLocal) {
     return localRooms.get(roomId);
   }
-  const room = await getRedis().get<Raum>(`${ROOM_PREFIX}${roomId}`);
-  return room || undefined;
+  const r = await getRedis();
+  const data = await r.get(`${ROOM_PREFIX}${roomId}`);
+  return data ? JSON.parse(data) : undefined;
 }
 
 export async function getAllRooms(): Promise<Raum[]> {
@@ -154,14 +160,18 @@ export async function getAllRooms(): Promise<Raum[]> {
     return Array.from(localRooms.values()).filter(r => r.status !== 'laeuft');
   }
 
-  const roomIds = await getRedis().smembers(ROOMS_LIST_KEY);
+  const r = await getRedis();
+  const roomIds = await r.sMembers(ROOMS_LIST_KEY);
   if (!roomIds || roomIds.length === 0) return [];
 
   const rooms: Raum[] = [];
   for (const id of roomIds) {
-    const room = await getRedis().get<Raum>(`${ROOM_PREFIX}${id}`);
-    if (room && room.status !== 'laeuft') {
-      rooms.push(room);
+    const data = await r.get(`${ROOM_PREFIX}${id}`);
+    if (data) {
+      const room = JSON.parse(data) as Raum;
+      if (room.status !== 'laeuft') {
+        rooms.push(room);
+      }
     }
   }
   return rooms;
@@ -171,8 +181,9 @@ export async function deleteRoom(roomId: string): Promise<void> {
   if (isLocal) {
     localRooms.delete(roomId);
   } else {
-    await getRedis().del(`${ROOM_PREFIX}${roomId}`);
-    await getRedis().srem(ROOMS_LIST_KEY, roomId);
+    const r = await getRedis();
+    await r.del(`${ROOM_PREFIX}${roomId}`);
+    await r.sRem(ROOMS_LIST_KEY, roomId);
   }
 }
 
@@ -180,6 +191,7 @@ async function saveRoom(room: Raum): Promise<void> {
   if (isLocal) {
     localRooms.set(room.id, room);
   } else {
-    await getRedis().set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
+    const r = await getRedis();
+    await r.set(`${ROOM_PREFIX}${room.id}`, JSON.stringify(room), { EX: 3600 });
   }
 }
