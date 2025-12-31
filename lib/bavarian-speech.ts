@@ -94,6 +94,13 @@ export const BAVARIAN_ANSAGEN: Record<string, BavarianPhrase[]> = {
     { text: 'I loss aus!', speech: 'I loss aus!' },
     { text: 'Des san lauter Kracher!', speech: 'Des san lauter Kracher!' },
     { text: 'Nix wia Ramsch!', speech: 'Nix wia Ramsch!' },
+    { text: 'Hod sa da Geber heid wieda d\'Hend niad gwaschn?', speech: 'Hod sa da Geber heid wieda d Hend niad gwaschn?' },
+    { text: 'Latta Siema heid wieda!', speech: 'Latta Siema heid wieda!' },
+    { text: 'Mit dem heads eitz niad grachat, göll?', speech: 'Mit dem heads eitz niad grachat, göll?' },
+    { text: 'Göll dou schaust niad schlecht?', speech: 'Göll dou schaust niad schlecht?' },
+    { text: 'Wos is des für a Schas?', speech: 'Wos is des für a Schas?' },
+    { text: 'Des is ja zum Scheissn!', speech: 'Des is ja zum Scheissn!' },
+    { text: 'Des hoast woascheinlich guat mischn!', speech: 'Des hoast woascheinlich guat mischn!' },
   ],
 };
 
@@ -291,6 +298,11 @@ export const STICH_VERLOREN: BavarianPhrase[] = [
   { text: 'So a Sau!', speech: 'So a Sau!' },
   { text: 'Wos soi des?', speech: 'Wos soi des?' },
   { text: 'Na servas!', speech: 'Na servas!' },
+  { text: 'Himmelherrschaftszeitn!', speech: 'Himmelherrschaftszeitn!' },
+  { text: 'Kreizdividomine!', speech: 'Kreizdividomine!' },
+  { text: 'Krumme Nuckel!', speech: 'Krumme Nuckel!' },
+  { text: 'A leck mi doch kreizweis am Oarsch!', speech: 'A leck mi doch kreizweis am Oarsch!' },
+  { text: 'I bin doch niad af da Brennsuppn daheagschwumma!', speech: 'I bin doch niad af da Brennsuppn daheagschwumma!' },
 ];
 
 // Reaktionen beim Spielstart
