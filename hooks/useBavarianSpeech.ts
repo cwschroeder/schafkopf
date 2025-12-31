@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import {
   speak,
   initSpeech,
+  unlockAudio,
   getAnsageText,
   randomPhrase,
   STICH_GEWONNEN,
@@ -23,6 +24,11 @@ export function useBavarianSpeech() {
       initSpeech();
       initialized.current = true;
     }
+  }, []);
+
+  // Unlock audio bei erster User-Interaktion
+  const ensureAudioReady = useCallback(() => {
+    unlockAudio();
   }, []);
 
   const speakAnsage = useCallback((ansage: string, gesuchteAss?: string) => {
@@ -82,5 +88,6 @@ export function useBavarianSpeech() {
     speakSpielVerloren,
     speakDu,
     speakRe,
+    ensureAudioReady, // Für Mobile-Audio-Unlock bei User-Interaktion
   };
 }

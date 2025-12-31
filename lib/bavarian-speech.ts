@@ -447,10 +447,31 @@ export function getAnsageText(ansage: string, gesuchteAss?: string): BavarianPhr
 // Speech synthesis mit deutscher Stimme
 let speechQueue: string[] = [];
 let isSpeaking = false;
+let isAudioUnlocked = false;
+let cachedVoice: SpeechSynthesisVoice | null = null;
+
+// Findet die beste deutsche Stimme
+function findGermanVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    return null;
+  }
+
+  const voices = window.speechSynthesis.getVoices();
+  // Präferenz: männliche deutsche Stimme > deutsche Stimme > erste Stimme
+  return voices.find(v =>
+    v.lang.startsWith('de') && v.name.toLowerCase().includes('male')
+  ) || voices.find(v => v.lang.startsWith('de')) || voices[0] || null;
+}
 
 export function speak(text: string, rate: number = 0.9): void {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     return;
+  }
+
+  // Auf Mobile: Audio muss erst "entsperrt" werden
+  if (!isAudioUnlocked) {
+    // Versuche, Audio bei nächster Gelegenheit zu entsperren
+    unlockAudio();
   }
 
   speechQueue.push(text);
@@ -465,33 +486,78 @@ function processQueue(rate: number): void {
   isSpeaking = true;
   const text = speechQueue.shift()!;
 
+  // Cancel any pending speech (wichtig für Mobile)
+  window.speechSynthesis.cancel();
+
   const utterance = new SpeechSynthesisUtterance(text);
 
-  // Deutsche Stimme suchen
-  const voices = window.speechSynthesis.getVoices();
-  const germanVoice = voices.find(v =>
-    v.lang.startsWith('de') && v.name.toLowerCase().includes('male')
-  ) || voices.find(v => v.lang.startsWith('de')) || voices[0];
+  // Gecachte Stimme verwenden oder neu suchen
+  if (!cachedVoice) {
+    cachedVoice = findGermanVoice();
+  }
 
-  if (germanVoice) {
-    utterance.voice = germanVoice;
+  if (cachedVoice) {
+    utterance.voice = cachedVoice;
   }
 
   utterance.lang = 'de-DE';
   utterance.rate = rate;
   utterance.pitch = 1.0;
+  utterance.volume = 1.0;
 
   utterance.onend = () => {
     isSpeaking = false;
-    processQueue(rate);
+    // Kleine Verzögerung vor nächster Sprache (bessere Verständlichkeit)
+    setTimeout(() => processQueue(rate), 100);
   };
 
-  utterance.onerror = () => {
+  utterance.onerror = (e) => {
+    console.warn('Speech error:', e);
     isSpeaking = false;
     processQueue(rate);
   };
 
-  window.speechSynthesis.speak(utterance);
+  // iOS Safari fix: Speak muss in einem User-Event-Context aufgerufen werden
+  try {
+    window.speechSynthesis.speak(utterance);
+
+    // Chrome Mobile fix: speechSynthesis kann manchmal "hängen"
+    // Timeout zum Zurücksetzen nach 10 Sekunden
+    setTimeout(() => {
+      if (isSpeaking && speechQueue.length > 0) {
+        isSpeaking = false;
+        processQueue(rate);
+      }
+    }, 10000);
+  } catch (e) {
+    console.warn('Speech synthesis failed:', e);
+    isSpeaking = false;
+  }
+}
+
+// Audio für Mobile entsperren - muss bei User-Interaktion aufgerufen werden
+export function unlockAudio(): void {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window) || isAudioUnlocked) {
+    return;
+  }
+
+  try {
+    // Leere Utterance spricht nichts, entsperrt aber Audio
+    const utterance = new SpeechSynthesisUtterance('');
+    utterance.volume = 0;
+    window.speechSynthesis.speak(utterance);
+    isAudioUnlocked = true;
+
+    // Stimme cachen
+    cachedVoice = findGermanVoice();
+  } catch (e) {
+    console.warn('Audio unlock failed:', e);
+  }
+}
+
+// Prüft ob Audio bereit ist
+export function isAudioReady(): boolean {
+  return isAudioUnlocked;
 }
 
 // Voices laden (muss einmal aufgerufen werden)
@@ -501,9 +567,23 @@ export function initSpeech(): void {
   }
 
   // Voices sind oft nicht sofort verfügbar
+  const loadVoices = () => {
+    cachedVoice = findGermanVoice();
+  };
+
   if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      // Voices geladen
-    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  } else {
+    loadVoices();
   }
+
+  // Mobile Audio-Unlock bei erstem Touch/Click
+  const handleFirstInteraction = () => {
+    unlockAudio();
+    document.removeEventListener('touchstart', handleFirstInteraction);
+    document.removeEventListener('click', handleFirstInteraction);
+  };
+
+  document.addEventListener('touchstart', handleFirstInteraction, { once: true, passive: true });
+  document.addEventListener('click', handleFirstInteraction, { once: true });
 }

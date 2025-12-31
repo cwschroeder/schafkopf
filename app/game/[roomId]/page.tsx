@@ -39,7 +39,7 @@ export default function GamePage() {
   const [speechBubble, setSpeechBubble] = useState<{ text: string; playerId: string } | null>(null);
 
   // Bayerische Sprachausgabe
-  const { speakAnsage, speakStichGewonnen } = useBavarianSpeech();
+  const { speakAnsage, speakStichGewonnen, ensureAudioReady } = useBavarianSpeech();
 
   // Animation bei neuem Spiel zeigen
   useEffect(() => {
@@ -295,6 +295,7 @@ export default function GamePage() {
 
   // Legen-Entscheidung
   const handleLegen = async (willLegen: boolean) => {
+    ensureAudioReady(); // Audio bei erster Interaktion entsperren
     await fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -307,6 +308,7 @@ export default function GamePage() {
 
   // Ansage machen
   const handleAnsage = async (ansage: Ansage, gesuchteAss?: Farbe) => {
+    ensureAudioReady(); // Audio bei erster Interaktion entsperren
     await fetch('/api/game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -319,6 +321,7 @@ export default function GamePage() {
 
   // Karte spielen
   const handleCardPlay = useCallback(async (karteId: string) => {
+    ensureAudioReady(); // Audio bei erster Interaktion entsperren
     setSelectedCard(null);
     await fetch('/api/game', {
       method: 'POST',
@@ -333,7 +336,7 @@ export default function GamePage() {
       const state = await res.json();
       setGameState(state);
     }
-  }, [roomId, playerId, setSelectedCard, setGameState]);
+  }, [roomId, playerId, setSelectedCard, setGameState, ensureAudioReady]);
 
   // Auto-Play: Wenn ich am Zug bin und eine Karte vorausgewählt habe
   useEffect(() => {
@@ -519,9 +522,12 @@ export default function GamePage() {
     }));
 
     return (
-      <main className="min-h-screen p-2 sm:p-4 flex flex-col">
-        {/* Spieltisch */}
-        <div className="flex-1 flex items-center justify-center relative">
+      <main
+        className="min-h-screen p-2 sm:p-4 flex flex-col"
+        style={{ touchAction: 'manipulation' }} // Verhindert Zoom bei Double-Tap global
+      >
+        {/* Spieltisch - kompakt für mehr Kartenplatz */}
+        <div className="flex-1 flex items-center justify-center relative py-2">
           <Table
             state={gameState}
             myPlayerId={playerId}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import { Karte } from '@/lib/schafkopf/types';
 import Card from './Card';
 
@@ -15,6 +16,9 @@ interface HandProps {
   hidden?: boolean;
 }
 
+// Timeout für Double-Tap Detection (ms)
+const DOUBLE_TAP_DELAY = 300;
+
 export default function Hand({
   karten,
   spielbareKarten = [],
@@ -26,9 +30,29 @@ export default function Hand({
   isCurrentPlayer = false,
   hidden = false,
 }: HandProps) {
+  // Für Double-Tap Detection pro Karte
+  const lastTapRef = useRef<{ [karteId: string]: number }>({});
 
-  const handleCardClick = (karte: Karte) => {
+  // Kombinierter Touch/Click Handler für Mobile-freundliches Double-Tap
+  const handleCardTap = useCallback((karte: Karte) => {
     if (hidden) return;
+
+    const now = Date.now();
+    const lastTap = lastTapRef.current[karte.id] || 0;
+    const isDoubleTap = now - lastTap < DOUBLE_TAP_DELAY;
+
+    if (isDoubleTap && isCurrentPlayer) {
+      // Double-Tap → Karte spielen
+      const istSpielbar = spielbareKarten.length === 0 || spielbareKarten.includes(karte.id);
+      if (istSpielbar && onCardPlay) {
+        onCardPlay(karte.id);
+        lastTapRef.current[karte.id] = 0; // Reset
+        return;
+      }
+    }
+
+    // Single Tap speichern
+    lastTapRef.current[karte.id] = now;
 
     // Wenn nicht am Zug: Vorauswahl (Toggle)
     if (!isCurrentPlayer && onCardPreSelect) {
@@ -53,9 +77,9 @@ export default function Hand({
         onCardSelect(karte.id);
       }
     }
-  };
+  }, [hidden, isCurrentPlayer, spielbareKarten, selectedCard, preSelectedCard, onCardSelect, onCardPreSelect, onCardPlay]);
 
-  // Doppelklick = sofort spielen
+  // Doppelklick = sofort spielen (für Desktop)
   const handleDoubleClick = (karte: Karte) => {
     if (hidden || !isCurrentPlayer) return;
 
@@ -99,12 +123,13 @@ export default function Hand({
                     : `rotate(${(index - (karten.length - 1) / 2) * 5}deg)`,
                   zIndex: isSelected || isPreSelected ? 100 : index,
                   filter: isPreSelected ? 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.8))' : 'none',
+                  touchAction: 'manipulation', // Verhindert Zoom bei Double-Tap
                 }}
                 onDoubleClick={() => handleDoubleClick(karte)}
               >
                 <Card
                   karte={karte}
-                  onClick={() => handleCardClick(karte)}
+                  onClick={() => handleCardTap(karte)}
                   selected={isSelected}
                   disabled={!istSpielbar && isCurrentPlayer}
                   hidden={hidden}
