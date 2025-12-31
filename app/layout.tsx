@@ -1,0 +1,35 @@
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Schafkopf Online',
+  description: 'Spiele Schafkopf mit Freunden oder gegen KI',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Schafkopf',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#1a241e',
+  viewportFit: 'cover',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="de">
+      <body className="min-h-screen text-white">
+        {children}
+      </body>
+    </html>
+  );
+}

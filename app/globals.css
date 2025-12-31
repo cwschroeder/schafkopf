@@ -1,0 +1,341 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --card-width: 60px;
+  --card-height: 90px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --card-width: 80px;
+    --card-height: 120px;
+  }
+}
+
+/* Bayerischer Wirtshaus-Hintergrund */
+body {
+  background:
+    linear-gradient(180deg,
+      rgba(26,36,30,0.95) 0%,
+      rgba(20,52,43,0.9) 50%,
+      rgba(26,36,30,0.95) 100%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+  background-color: #1a241e;
+  min-height: 100vh;
+}
+
+/* Karten-Styling */
+.card {
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: 8px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.4),
+    0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.card.selected {
+  transform: translateY(-16px);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.5),
+    0 0 0 3px #d4af37,
+    0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.card.disabled:hover {
+  transform: none;
+}
+
+/* Hand-Animation */
+.hand-card {
+  transition: all 0.3s ease;
+}
+
+.hand-card:nth-child(1) { transform: rotate(-12deg); }
+.hand-card:nth-child(2) { transform: rotate(-7deg); }
+.hand-card:nth-child(3) { transform: rotate(-2deg); }
+.hand-card:nth-child(4) { transform: rotate(2deg); }
+.hand-card:nth-child(5) { transform: rotate(7deg); }
+.hand-card:nth-child(6) { transform: rotate(12deg); }
+
+/* Stich Animation */
+@keyframes cardPlay {
+  from {
+    transform: translateY(100px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.stich-card {
+  animation: cardPlay 0.3s ease-out;
+}
+
+/* Pulse Animation für aktuellen Spieler */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+  }
+}
+
+.current-player {
+  animation: pulse 2s infinite;
+}
+
+/* Stärkerer Pulse-Glow für aktiven Spieler */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(251,191,36,0.7), 0 0 40px rgba(124,58,237,0.3);
+    transform: scale(1.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(251,191,36,0.9), 0 0 60px rgba(124,58,237,0.5);
+    transform: scale(1.15);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+/* Karten-Einsammel-Animation */
+@keyframes collectCards {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--collect-x), var(--collect-y)) scale(0.3) rotate(var(--collect-rotate));
+    opacity: 0;
+  }
+}
+
+.collecting-cards {
+  animation: collectCards 0.6s ease-in forwards;
+}
+
+/* Sprechblasen-Animation */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Goldene Leuchteffekte */
+@keyframes goldGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6));
+  }
+}
+
+/* Button-Styles - Bayerisches Design */
+.btn {
+  @apply px-4 py-2 rounded-lg font-semibold transition-all duration-200;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  color: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #e5c158 0%, #d4af37 100%);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #5d4037 0%, #4e342e 100%);
+  color: #e5d3b3;
+  border: 1px solid rgba(139,90,43,0.5);
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #6d4c41 0%, #5d4037 100%);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Eingabefelder im bayerischen Stil */
+input[type="text"] {
+  background: linear-gradient(135deg, #3e2723 0%, #4e342e 100%);
+  border: 1px solid rgba(139,90,43,0.5);
+  color: #e5d3b3;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 0 2px rgba(212,175,55,0.2);
+}
+
+input[type="text"]::placeholder {
+  color: rgba(229,211,179,0.5);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #5d4037 0%, #4e342e 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #6d4c41 0%, #5d4037 100%);
+}
+
+/* Schafkopf Title Text */
+.schafkopf-title {
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 50%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+/* Mobile Touch Optimierungen */
+@media (max-width: 639px) {
+  /* Größere Touch-Targets auf Mobile */
+  .btn {
+    @apply px-4 py-3 text-base;
+    min-height: 44px; /* Apple's empfohlene Touch-Target-Größe */
+  }
+
+  /* Karten-Hover auf Touch deaktivieren */
+  .card:hover {
+    transform: none;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Hand-Karten ohne Hover-Effekt */
+  .hand-card:hover .card {
+    transform: none;
+  }
+
+  /* Spieler-Info kompakter */
+  .current-player {
+    animation: pulse 2s infinite;
+  }
+
+  /* Verhindere unbeabsichtigtes Zoomen */
+  input[type="text"] {
+    font-size: 16px; /* Verhindert iOS-Zoom */
+  }
+}
+
+/* Touch-freundliche Karteninteraktion */
+@media (pointer: coarse) {
+  .card {
+    /* Größere Touch-Fläche */
+    position: relative;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+  }
+
+  /* Kein Hover auf Touch-Geräten */
+  .card:hover {
+    transform: none;
+  }
+
+  /* Active-State statt Hover */
+  .card:active {
+    transform: scale(0.95);
+    transition: transform 0.1s;
+  }
+
+  .hand-card:active {
+    transform: translateY(-10px) scale(1.02) !important;
+  }
+}
+
+/* Safe-Area für iPhone Notch */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fixed.bottom-0 {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
