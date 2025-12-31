@@ -13,6 +13,9 @@ export default function Lobby() {
   const [newRoomName, setNewRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
   // Spieler laden
   useEffect(() => {
@@ -114,15 +117,29 @@ export default function Lobby() {
 
       if (!res.ok) {
         const { error } = await res.json();
-        alert(error);
-        return;
+        return error || 'Raum nicht gefunden';
       }
 
       const { room } = await res.json();
       setCurrentRoom(room);
       router.push(`/game/${room.id}`);
+      return null;
     } catch (error) {
       console.error('Fehler beim Beitreten:', error);
+      return 'Verbindungsfehler';
+    }
+  };
+
+  // Mit Code beitreten
+  const joinByCode = async () => {
+    if (!joinCode.trim()) return;
+
+    setJoinError('');
+    const code = joinCode.trim().toUpperCase();
+    const error = await joinRoom(code);
+
+    if (error) {
+      setJoinError(error);
     }
   };
 
@@ -189,6 +206,55 @@ export default function Lobby() {
           </button>
         )}
 
+        {/* Mit Code beitreten */}
+        {showJoinForm ? (
+          <div className="bg-gray-800 rounded-xl p-4 space-y-3">
+            <h2 className="font-semibold">Mit Code beitreten</h2>
+            <input
+              type="text"
+              value={joinCode}
+              onChange={e => {
+                setJoinCode(e.target.value.toUpperCase());
+                setJoinError('');
+              }}
+              placeholder="Raum-Code eingeben (z.B. ABC123)"
+              className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600
+                         focus:border-amber-500 outline-none text-white font-mono text-center text-lg tracking-widest"
+              maxLength={8}
+              onKeyDown={e => e.key === 'Enter' && joinByCode()}
+            />
+            {joinError && (
+              <p className="text-red-400 text-sm text-center">{joinError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={joinByCode}
+                disabled={!joinCode.trim()}
+                className="btn btn-primary flex-1"
+              >
+                Beitreten
+              </button>
+              <button
+                onClick={() => {
+                  setShowJoinForm(false);
+                  setJoinCode('');
+                  setJoinError('');
+                }}
+                className="btn btn-secondary"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowJoinForm(true)}
+            className="w-full btn btn-secondary py-3"
+          >
+            🔗 Mit Code beitreten
+          </button>
+        )}
+
         {/* Raumliste */}
         <div className="space-y-3">
           <h2 className="font-semibold text-gray-300">Offene Tische</h2>
@@ -204,7 +270,10 @@ export default function Lobby() {
                 <RoomCard
                   key={room.id}
                   room={room}
-                  onJoin={() => joinRoom(room.id)}
+                  onJoin={async () => {
+                    const error = await joinRoom(room.id);
+                    if (error) alert(error);
+                  }}
                   isMyRoom={room.spieler.some(s => s.id === playerId)}
                 />
               ))}
