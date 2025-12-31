@@ -14,9 +14,19 @@ import {
   erstelleSpiel,
   activeGames,
 } from '@/lib/schafkopf/game-state';
-import { pusherServer, EVENTS, gameChannel, roomChannel } from '@/lib/pusher';
+import { getPusherServer, EVENTS, roomChannel } from '@/lib/pusher';
 import { botAnsage, botSpielzug } from '@/lib/openai';
 import { Ansage, Farbe } from '@/lib/schafkopf/types';
+
+// Helper für optionales Pusher-Triggern
+async function triggerPusher(channel: string, event: string, data: unknown) {
+  try {
+    const pusher = getPusherServer();
+    await pusher.trigger(channel, event, data);
+  } catch (e) {
+    console.warn('Pusher nicht verfügbar:', e);
+  }
+}
 
 // GET - Spielzustand abrufen
 export async function GET(request: NextRequest) {
@@ -60,7 +70,7 @@ export async function POST(request: NextRequest) {
         await broadcastGameState(roomId, state);
 
         // Event für Legen
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.LEGEN, {
+        await triggerPusher(roomChannel(roomId), EVENTS.LEGEN, {
           playerId,
           willLegen,
         });
@@ -81,7 +91,7 @@ export async function POST(request: NextRequest) {
         await broadcastGameState(roomId, state);
 
         // Event für die Ansage
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.ANSAGE, {
+        await triggerPusher(roomChannel(roomId), EVENTS.ANSAGE, {
           playerId,
           ansage,
           gesuchteAss,
@@ -99,7 +109,7 @@ export async function POST(request: NextRequest) {
         state = verarbeiteSpielzug(state, playerId, karteId);
         activeGames.set(roomId, state);
 
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.KARTE_GESPIELT, {
+        await triggerPusher(roomChannel(roomId), EVENTS.KARTE_GESPIELT, {
           playerId,
           karteId,
         });
@@ -110,7 +120,7 @@ export async function POST(request: NextRequest) {
         console.log('[Spielzug] Phase nach Zug:', state.phase, 'StichNr:', state.stichNummer);
 
         if (state.phase === 'stich-ende' || state.phase === 'runde-ende') {
-          await pusherServer.trigger(roomChannel(roomId), EVENTS.STICH_ENDE, {
+          await triggerPusher(roomChannel(roomId), EVENTS.STICH_ENDE, {
             gewinner: state.aktuellerStich.gewinner,
             stich: state.aktuellerStich,
           });
@@ -123,7 +133,7 @@ export async function POST(request: NextRequest) {
               activeGames.set(roomId, endState);
 
               console.log('[Spielzug] Ergebnis berechnet, sende RUNDE_ENDE Event...');
-              await pusherServer.trigger(roomChannel(roomId), EVENTS.RUNDE_ENDE, {
+              await triggerPusher(roomChannel(roomId), EVENTS.RUNDE_ENDE, {
                 ergebnis,
               });
 
@@ -150,7 +160,7 @@ export async function POST(request: NextRequest) {
         state = sageDu(state, playerId);
         activeGames.set(roomId, state);
 
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.DU_GESAGT, { playerId });
+        await triggerPusher(roomChannel(roomId), EVENTS.DU_GESAGT, { playerId });
         await broadcastGameState(roomId, state);
 
         return NextResponse.json({ success: true });
@@ -160,7 +170,7 @@ export async function POST(request: NextRequest) {
         state = sageRe(state, playerId);
         activeGames.set(roomId, state);
 
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.RE_GESAGT, { playerId });
+        await triggerPusher(roomChannel(roomId), EVENTS.RE_GESAGT, { playerId });
         await broadcastGameState(roomId, state);
 
         return NextResponse.json({ success: true });
@@ -244,11 +254,11 @@ async function broadcastGameState(roomId: string, state: ReturnType<typeof getSp
   // Für jeden Spieler individuelle Sicht senden
   for (const spieler of state.spieler) {
     const sicht = getSpielerSicht(state, spieler.id);
-    await pusherServer.trigger(`private-player-${spieler.id}`, EVENTS.GAME_STATE, sicht);
+    await triggerPusher(`private-player-${spieler.id}`, EVENTS.GAME_STATE, sicht);
   }
 
   // Öffentliche Events
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.GAME_STATE, {
+  await triggerPusher(roomChannel(roomId), EVENTS.GAME_STATE, {
     phase: state.phase,
     aktuellerSpieler: state.aktuellerSpieler,
     aktuellerAnsager: state.aktuellerAnsager,
@@ -266,7 +276,7 @@ async function processeBotAnsagen(roomId: string, state: ReturnType<typeof getSp
   if (!aktuellerSpieler.isBot) return;
 
   // Bot "denkt" kurz
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.BOT_THINKING, {
+  await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
     botId: aktuellerSpieler.id,
   });
 
@@ -287,7 +297,7 @@ async function processeBotAnsagen(roomId: string, state: ReturnType<typeof getSp
   state = verarbeiteAnsage(state, aktuellerSpieler.id, ansage, gesuchteAss);
   activeGames.set(roomId, state);
 
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.BOT_ACTION, {
+  await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
     botId: aktuellerSpieler.id,
     action: 'ansage',
     ansage,
@@ -324,7 +334,7 @@ async function processeBotLegen(roomId: string, state: ReturnType<typeof getSpie
   const bot = botsNichtEntschieden[0];
 
   // Bot "denkt" kurz
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.BOT_THINKING, {
+  await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
     botId: bot.id,
   });
 
@@ -339,7 +349,7 @@ async function processeBotLegen(roomId: string, state: ReturnType<typeof getSpie
   state = verarbeiteLegen(state, bot.id, willLegen);
   activeGames.set(roomId, state);
 
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.BOT_ACTION, {
+  await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
     botId: bot.id,
     action: 'legen',
     willLegen,
@@ -362,7 +372,7 @@ async function processeBotSpielzuege(roomId: string, state: ReturnType<typeof ge
   if (!aktuellerSpieler.isBot) return;
 
   // Bot "denkt"
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.BOT_THINKING, {
+  await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
     botId: aktuellerSpieler.id,
   });
 
@@ -375,7 +385,7 @@ async function processeBotSpielzuege(roomId: string, state: ReturnType<typeof ge
   state = verarbeiteSpielzug(state, aktuellerSpieler.id, karteId);
   activeGames.set(roomId, state);
 
-  await pusherServer.trigger(roomChannel(roomId), EVENTS.BOT_ACTION, {
+  await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
     botId: aktuellerSpieler.id,
     action: 'spielzug',
     karteId,
@@ -388,7 +398,7 @@ async function processeBotSpielzuege(roomId: string, state: ReturnType<typeof ge
   // Stich-Ende oder Runde-Ende?
   if (state.phase === 'stich-ende' || state.phase === 'runde-ende') {
     console.log('[Bot] Stich/Runde Ende erkannt!');
-    await pusherServer.trigger(roomChannel(roomId), EVENTS.STICH_ENDE, {
+    await triggerPusher(roomChannel(roomId), EVENTS.STICH_ENDE, {
       gewinner: state.aktuellerStich.gewinner,
       stich: state.aktuellerStich,
     });
@@ -404,7 +414,7 @@ async function processeBotSpielzuege(roomId: string, state: ReturnType<typeof ge
         activeGames.set(roomId, endState);
         console.log('[Bot] Ergebnis:', ergebnis);
 
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.RUNDE_ENDE, { ergebnis });
+        await triggerPusher(roomChannel(roomId), EVENTS.RUNDE_ENDE, { ergebnis });
         await broadcastGameState(roomId, endState);
         console.log('[Bot] RUNDE_ENDE Event gesendet!');
       } catch (error) {

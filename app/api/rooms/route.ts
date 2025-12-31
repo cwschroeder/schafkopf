@@ -12,8 +12,18 @@ import {
   getAllRooms,
   generatePlayerId,
 } from '@/lib/rooms';
-import { pusherServer, EVENTS, lobbyChannel, roomChannel } from '@/lib/pusher';
+import { getPusherServer, EVENTS, lobbyChannel, roomChannel } from '@/lib/pusher';
 import { erstelleSpiel } from '@/lib/schafkopf/game-state';
+
+// Helper für optionales Pusher-Triggern
+async function triggerPusher(channel: string, event: string, data: unknown) {
+  try {
+    const pusher = getPusherServer();
+    await pusher.trigger(channel, event, data);
+  } catch (e) {
+    console.warn('Pusher nicht verfügbar:', e);
+  }
+}
 
 // GET - Alle Räume auflisten oder einzelnen Raum abrufen
 export async function GET(request: NextRequest) {
@@ -45,7 +55,7 @@ export async function POST(request: NextRequest) {
         const id = playerId || generatePlayerId();
         const room = createRoom(roomName || 'Schafkopf-Tisch', id, playerName);
 
-        await pusherServer.trigger(lobbyChannel(), EVENTS.ROOM_CREATED, room);
+        await triggerPusher(lobbyChannel(), EVENTS.ROOM_CREATED, room);
 
         return NextResponse.json({ room, playerId: id });
       }
@@ -59,8 +69,8 @@ export async function POST(request: NextRequest) {
         }
 
         await Promise.all([
-          pusherServer.trigger(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
-          pusherServer.trigger(roomChannel(roomId), EVENTS.PLAYER_JOINED, {
+          triggerPusher(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
+          triggerPusher(roomChannel(roomId), EVENTS.PLAYER_JOINED, {
             playerId: id,
             playerName,
             room,
@@ -75,14 +85,14 @@ export async function POST(request: NextRequest) {
 
         if (room) {
           await Promise.all([
-            pusherServer.trigger(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
-            pusherServer.trigger(roomChannel(roomId), EVENTS.PLAYER_LEFT, {
+            triggerPusher(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
+            triggerPusher(roomChannel(roomId), EVENTS.PLAYER_LEFT, {
               playerId,
               room,
             }),
           ]);
         } else {
-          await pusherServer.trigger(lobbyChannel(), EVENTS.ROOM_DELETED, { roomId });
+          await triggerPusher(lobbyChannel(), EVENTS.ROOM_DELETED, { roomId });
         }
 
         return NextResponse.json({ success: true });
@@ -96,7 +106,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Raum nicht gefunden' }, { status: 400 });
         }
 
-        await pusherServer.trigger(roomChannel(roomId), EVENTS.PLAYER_READY, {
+        await triggerPusher(roomChannel(roomId), EVENTS.PLAYER_READY, {
           playerId,
           ready,
           room,
@@ -113,8 +123,8 @@ export async function POST(request: NextRequest) {
         }
 
         await Promise.all([
-          pusherServer.trigger(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
-          pusherServer.trigger(roomChannel(roomId), EVENTS.ROOM_UPDATED, room),
+          triggerPusher(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
+          triggerPusher(roomChannel(roomId), EVENTS.ROOM_UPDATED, room),
         ]);
 
         return NextResponse.json({ room });
@@ -140,8 +150,8 @@ export async function POST(request: NextRequest) {
         );
 
         await Promise.all([
-          pusherServer.trigger(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
-          pusherServer.trigger(roomChannel(roomId), EVENTS.GAME_STARTING, {
+          triggerPusher(lobbyChannel(), EVENTS.ROOM_UPDATED, room),
+          triggerPusher(roomChannel(roomId), EVENTS.GAME_STARTING, {
             roomId,
             gameState,
           }),

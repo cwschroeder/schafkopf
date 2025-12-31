@@ -1,10 +1,12 @@
 // Pusher Auth Endpoint für private/presence Channels
 
 import { NextRequest, NextResponse } from 'next/server';
-import { pusherServer } from '@/lib/pusher';
+import { getPusherServer } from '@/lib/pusher';
 
 export async function POST(request: NextRequest) {
   try {
+    const pusher = getPusherServer();
+
     const formData = await request.formData();
     const socketId = formData.get('socket_id') as string;
     const channelName = formData.get('channel_name') as string;
@@ -22,11 +24,11 @@ export async function POST(request: NextRequest) {
         },
       };
 
-      const auth = pusherServer.authorizeChannel(socketId, channelName, presenceData);
+      const auth = pusher.authorizeChannel(socketId, channelName, presenceData);
       return NextResponse.json(auth);
     } else {
       // Private Channel
-      const auth = pusherServer.authorizeChannel(socketId, channelName);
+      const auth = pusher.authorizeChannel(socketId, channelName);
       return NextResponse.json(auth);
     }
   } catch (error) {
