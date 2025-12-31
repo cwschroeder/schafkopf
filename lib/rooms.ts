@@ -1,14 +1,26 @@
-// Raum-Verwaltung mit Vercel KV für Produktion
+// Raum-Verwaltung mit Upstash Redis für Produktion
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 import { Raum } from './schafkopf/types';
 
 const ROOM_PREFIX = 'room:';
 const ROOMS_LIST_KEY = 'rooms:list';
 
-// Fallback für lokale Entwicklung ohne KV
+// Fallback für lokale Entwicklung ohne Redis
 const localRooms = new Map<string, Raum>();
-const isLocal = !process.env.KV_REST_API_URL;
+const isLocal = !process.env.UPSTASH_REDIS_REST_URL;
+
+// Redis-Client (Lazy Init)
+let redis: Redis | null = null;
+function getRedis(): Redis {
+  if (!redis) {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+  }
+  return redis;
+}
 
 export function generateRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -32,8 +44,9 @@ export async function createRoom(name: string, erstellerId: string, erstellerNam
   if (isLocal) {
     localRooms.set(room.id, room);
   } else {
-    await kv.set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
-    await kv.sadd(ROOMS_LIST_KEY, room.id);
+    const r = getRedis();
+    await r.set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
+    await r.sadd(ROOMS_LIST_KEY, room.id);
   }
 
   return room;
@@ -132,7 +145,7 @@ export async function getRoom(roomId: string): Promise<Raum | undefined> {
   if (isLocal) {
     return localRooms.get(roomId);
   }
-  const room = await kv.get<Raum>(`${ROOM_PREFIX}${roomId}`);
+  const room = await getRedis().get<Raum>(`${ROOM_PREFIX}${roomId}`);
   return room || undefined;
 }
 
@@ -141,12 +154,12 @@ export async function getAllRooms(): Promise<Raum[]> {
     return Array.from(localRooms.values()).filter(r => r.status !== 'laeuft');
   }
 
-  const roomIds = await kv.smembers(ROOMS_LIST_KEY);
+  const roomIds = await getRedis().smembers(ROOMS_LIST_KEY);
   if (!roomIds || roomIds.length === 0) return [];
 
   const rooms: Raum[] = [];
   for (const id of roomIds) {
-    const room = await kv.get<Raum>(`${ROOM_PREFIX}${id}`);
+    const room = await getRedis().get<Raum>(`${ROOM_PREFIX}${id}`);
     if (room && room.status !== 'laeuft') {
       rooms.push(room);
     }
@@ -158,8 +171,8 @@ export async function deleteRoom(roomId: string): Promise<void> {
   if (isLocal) {
     localRooms.delete(roomId);
   } else {
-    await kv.del(`${ROOM_PREFIX}${roomId}`);
-    await kv.srem(ROOMS_LIST_KEY, roomId);
+    await getRedis().del(`${ROOM_PREFIX}${roomId}`);
+    await getRedis().srem(ROOMS_LIST_KEY, roomId);
   }
 }
 
@@ -167,6 +180,6 @@ async function saveRoom(room: Raum): Promise<void> {
   if (isLocal) {
     localRooms.set(room.id, room);
   } else {
-    await kv.set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
+    await getRedis().set(`${ROOM_PREFIX}${room.id}`, room, { ex: 3600 }); // 1 Stunde TTL
   }
 }
