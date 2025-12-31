@@ -353,48 +353,26 @@ html, body {
 }
 
 /* Landscape-Optimierung für Mobile */
-@media (orientation: landscape) and (max-height: 500px) {
-  /* Kompakteres Layout im Landscape-Modus */
-  .min-h-screen {
-    min-height: 100dvh;
-  }
-
-  /* Kleinere Abstände */
-  .p-2 {
-    padding: 0.25rem;
-  }
-
-  .p-4 {
-    padding: 0.5rem;
+@media (orientation: landscape) {
+  html, body {
+    overflow: hidden;
   }
 
   /* Kompaktere Buttons */
   .btn {
     @apply px-3 py-1.5 text-sm;
-    min-height: 40px;
+    min-height: 36px;
   }
 
   /* Dialoge kompakter */
   .fixed.top-4 {
-    top: 0.25rem;
+    top: 0.5rem;
   }
 
-  /* Spieltisch volle Breite */
+  /* Spieltisch passt sich an */
   .game-table {
-    max-width: 95vw !important;
-    min-height: 70vh !important;
-    max-height: 85vh !important;
-  }
-}
-
-/* Landscape mit mehr Breite nutzen */
-@media (orientation: landscape) {
-  .max-w-2xl {
-    max-width: 90vw;
-  }
-
-  .game-table {
-    max-width: 90vw;
+    max-width: min(95vw, 130vh) !important;
+    max-height: 95vh !important;
   }
 }
 
