@@ -14,8 +14,9 @@ import {
   getSpielerSicht,
   erstelleSpiel,
 } from '@/lib/schafkopf/game-state';
+import { kannAusIs } from '@/lib/aus-is';
 import { getPusherServer, EVENTS, roomChannel } from '@/lib/pusher';
-import { botAnsage, botSpielzug } from '@/lib/openai';
+import { botAnsage, botSpielzug } from '@/lib/bot-logic';
 import { Ansage, Farbe, SpielState } from '@/lib/schafkopf/types';
 
 // Helper für optionales Pusher-Triggern
@@ -239,6 +240,58 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      case 'ausIs': {
+        // "Aus is!" - Spieler hat alle höchsten Trümpfe und beendet das Spiel
+        if (!kannAusIs(state, playerId)) {
+          return NextResponse.json({ error: 'Aus is! nicht möglich' }, { status: 400 });
+        }
+
+        // Alle restlichen Karten des Spielers automatisch spielen
+        const spielerIndex = state.spieler.findIndex(s => s.id === playerId);
+        const spieler = state.spieler[spielerIndex];
+
+        // Event für "Aus is!" senden
+        await triggerPusher(roomChannel(roomId), EVENTS.AUS_IS, {
+          playerId,
+          restlicheKarten: spieler.hand.map(k => k.id),
+        });
+
+        // Alle restlichen Stiche dem Spieler geben
+        while (spieler.hand.length > 0) {
+          // Aktuellen Stich "spielen" - alle Karten in einen Fake-Stich
+          const stichKarten = [];
+
+          // Spieler spielt seine erste Karte
+          const meineKarte = spieler.hand.shift()!;
+          stichKarten.push(meineKarte);
+
+          // Andere Spieler "geben zu" (ihre erste Karte)
+          for (let i = 1; i < 4; i++) {
+            const andererIndex = (spielerIndex + i) % 4;
+            const anderer = state.spieler[andererIndex];
+            if (anderer.hand.length > 0) {
+              stichKarten.push(anderer.hand.shift()!);
+            }
+          }
+
+          // Stich dem Spieler geben
+          spieler.stiche.push(stichKarten);
+          state.stichNummer++;
+        }
+
+        // Runde beenden
+        state.phase = 'runde-ende';
+        state.aktuellerStich = { karten: [], gewinner: playerId };
+
+        const { state: endState, ergebnis } = beendeRunde(state);
+        await saveGameState(endState);
+
+        await triggerPusher(roomChannel(roomId), EVENTS.RUNDE_ENDE, { ergebnis });
+        await broadcastGameState(roomId, endState);
+
+        return NextResponse.json({ success: true, ergebnis });
+      }
+
       default:
         return NextResponse.json({ error: 'Unbekannte Aktion' }, { status: 400 });
     }
@@ -275,146 +328,210 @@ async function broadcastGameState(roomId: string, state: SpielState | undefined)
 }
 
 async function processeBotAnsagen(roomId: string, state: SpielState | undefined) {
-  if (!state || state.phase !== 'ansagen') return;
+  console.log('[Bot] processeBotAnsagen called, phase:', state?.phase);
 
-  const aktuellerSpieler = state.spieler[state.aktuellerAnsager];
-  if (!aktuellerSpieler.isBot) return;
+  try {
+    if (!state) return;
 
-  // Bot "denkt" kurz
-  await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
-    botId: aktuellerSpieler.id,
-  });
+    // Wenn Phase zu 'spielen' gewechselt hat, Bot-Spielzüge starten
+    if (state.phase === 'spielen') {
+      console.log('[Bot] Phase ist spielen, starte Bot-Spielzüge');
+      await processeBotSpielzuege(roomId, state);
+      return;
+    }
 
-  await new Promise(resolve => setTimeout(resolve, 1500));
+    if (state.phase !== 'ansagen') return;
 
-  // Bot-Ansage generieren
-  const bisherigeAnsagen = state.spieler
-    .filter(s => s.hatAngesagt)
-    .map(s => ({ position: s.position, ansage: s.ansage! }));
+    const aktuellerSpieler = state.spieler[state.aktuellerAnsager];
+    console.log('[Bot] Aktueller Ansager:', aktuellerSpieler?.name, 'isBot:', aktuellerSpieler?.isBot);
 
-  const { ansage, gesuchteAss } = await botAnsage(
-    aktuellerSpieler.hand,
-    aktuellerSpieler.position,
-    bisherigeAnsagen
-  );
+    if (!aktuellerSpieler?.isBot) return;
 
-  // Ansage verarbeiten
-  state = verarbeiteAnsage(state, aktuellerSpieler.id, ansage, gesuchteAss);
-  await saveGameState(state);
+    // Bot "denkt" kurz
+    await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
+      botId: aktuellerSpieler.id,
+    });
 
-  await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
-    botId: aktuellerSpieler.id,
-    action: 'ansage',
-    ansage,
-    gesuchteAss,
-  });
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-  await broadcastGameState(roomId, state);
+    // Bot-Ansage generieren
+    const bisherigeAnsagen = state.spieler
+      .filter(s => s.hatAngesagt)
+      .map(s => ({ position: s.position, ansage: s.ansage! }));
 
-  // Nächste Bot-Ansage (rekursiv)
-  if (state.phase === 'ansagen') {
-    await processeBotAnsagen(roomId, state);
-  } else if (state.phase === 'spielen') {
-    // Spiel startet, Bot-Züge prüfen
-    await processeBotSpielzuege(roomId, state);
+    const { ansage, gesuchteAss } = await botAnsage(
+      aktuellerSpieler.hand,
+      aktuellerSpieler.position,
+      bisherigeAnsagen
+    );
+
+    console.log('[Bot]', aktuellerSpieler.name, 'sagt an:', ansage, gesuchteAss ? `(${gesuchteAss})` : '');
+
+    // Ansage verarbeiten
+    state = verarbeiteAnsage(state, aktuellerSpieler.id, ansage, gesuchteAss);
+    await saveGameState(state);
+
+    await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
+      botId: aktuellerSpieler.id,
+      action: 'ansage',
+      ansage,
+      gesuchteAss,
+    });
+
+    await broadcastGameState(roomId, state);
+
+    // Nächste Bot-Ansage (rekursiv)
+    if (state.phase === 'ansagen') {
+      await processeBotAnsagen(roomId, state);
+    } else if (state.phase === 'spielen') {
+      // Spiel startet, Bot-Züge prüfen
+      await processeBotSpielzuege(roomId, state);
+    }
+  } catch (error) {
+    console.error('[Bot] FEHLER in processeBotAnsagen:', error);
   }
 }
 
 async function processeBotLegen(roomId: string, state: SpielState | undefined) {
-  if (!state || state.phase !== 'legen') {
-    // Wenn Phase gewechselt hat, Bot-Ansagen starten
-    if (state?.phase === 'ansagen') {
-      await processeBotAnsagen(roomId, state);
+  console.log('[Bot] processeBotLegen called, phase:', state?.phase);
+
+  try {
+    if (!state || state.phase !== 'legen') {
+      // Wenn Phase gewechselt hat, Bot-Ansagen starten
+      if (state?.phase === 'ansagen') {
+        console.log('[Bot] Phase ist ansagen, starte Bot-Ansagen');
+        await processeBotAnsagen(roomId, state);
+      }
+      return;
     }
-    return;
+
+    // Finde nächsten Bot der noch nicht entschieden hat
+    const botsNichtEntschieden = state.spieler.filter(
+      s => s.isBot && !state!.legenEntscheidungen.includes(s.id)
+    );
+
+    console.log('[Bot] Bots nicht entschieden:', botsNichtEntschieden.length);
+
+    if (botsNichtEntschieden.length === 0) {
+      console.log('[Bot] Alle Bots haben entschieden');
+      return;
+    }
+
+    const bot = botsNichtEntschieden[0];
+    console.log('[Bot] Verarbeite Legen für:', bot.name);
+
+    // Bot "denkt" kurz
+    await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
+      botId: bot.id,
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Bot-Entscheidung: Legt bei guten Karten (vereinfacht: bei 3+ Trümpfen)
+    // Zähle grob Ober und Unter als "gute" Karten
+    const guteKarten = bot.hand.filter(k => k.wert === 'ober' || k.wert === 'unter').length;
+    const willLegen = guteKarten >= 3 && Math.random() > 0.3; // Mit Zufall
+
+    console.log('[Bot]', bot.name, 'entscheidet:', willLegen ? 'legt' : 'legt nicht');
+
+    // Legen verarbeiten
+    state = verarbeiteLegen(state, bot.id, willLegen);
+    await saveGameState(state);
+
+    await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
+      botId: bot.id,
+      action: 'legen',
+      willLegen,
+    });
+
+    await broadcastGameState(roomId, state);
+
+    // Rekursiv nächste Bots
+    await processeBotLegen(roomId, state);
+  } catch (error) {
+    console.error('[Bot] FEHLER in processeBotLegen:', error);
   }
-
-  // Finde nächsten Bot der noch nicht entschieden hat
-  const botsNichtEntschieden = state.spieler.filter(
-    s => s.isBot && !state!.legenEntscheidungen.includes(s.id)
-  );
-
-  if (botsNichtEntschieden.length === 0) return;
-
-  const bot = botsNichtEntschieden[0];
-
-  // Bot "denkt" kurz
-  await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
-    botId: bot.id,
-  });
-
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  // Bot-Entscheidung: Legt bei guten Karten (vereinfacht: bei 3+ Trümpfen)
-  // Zähle grob Ober und Unter als "gute" Karten
-  const guteKarten = bot.hand.filter(k => k.wert === 'ober' || k.wert === 'unter').length;
-  const willLegen = guteKarten >= 3 && Math.random() > 0.3; // Mit Zufall
-
-  // Legen verarbeiten
-  state = verarbeiteLegen(state, bot.id, willLegen);
-  await saveGameState(state);
-
-  await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
-    botId: bot.id,
-    action: 'legen',
-    willLegen,
-  });
-
-  await broadcastGameState(roomId, state);
-
-  // Rekursiv nächste Bots
-  await processeBotLegen(roomId, state);
 }
 
-async function processeBotSpielzuege(roomId: string, state: SpielState | undefined) {
-  console.log('[Bot] processeBotSpielzuege called, phase:', state?.phase, 'stichNr:', state?.stichNummer);
+// Maximale Anzahl Retries bei Bot-Fehlern
+const MAX_BOT_RETRIES = 2;
+
+async function processeBotSpielzuege(roomId: string, state: SpielState | undefined, retryCount = 0) {
+  console.log('[Bot] processeBotSpielzuege called, phase:', state?.phase, 'stichNr:', state?.stichNummer, 'retry:', retryCount);
+
   if (!state || state.phase !== 'spielen') {
     console.log('[Bot] Returning early - not in spielen phase');
     return;
   }
 
   const aktuellerSpieler = state.spieler[state.aktuellerSpieler];
+  if (!aktuellerSpieler) {
+    console.error('[Bot] Aktueller Spieler nicht gefunden, Index:', state.aktuellerSpieler);
+    return;
+  }
+
+  console.log('[Bot] Aktueller Spieler:', aktuellerSpieler.name, 'isBot:', aktuellerSpieler.isBot);
   if (!aktuellerSpieler.isBot) return;
 
-  // Bot "denkt"
-  await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
-    botId: aktuellerSpieler.id,
-  });
-
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Bot-Spielzug generieren
-  const karteId = await botSpielzug(state, aktuellerSpieler.id);
-
-  // Spielzug ausführen
-  state = verarbeiteSpielzug(state, aktuellerSpieler.id, karteId);
-  await saveGameState(state);
-
-  await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
-    botId: aktuellerSpieler.id,
-    action: 'spielzug',
-    karteId,
-  });
-
-  await broadcastGameState(roomId, state);
-
-  console.log('[Bot] Nach Spielzug - phase:', state.phase, 'stichNr:', state.stichNummer);
-
-  // Stich-Ende oder Runde-Ende?
-  if (state.phase === 'stich-ende' || state.phase === 'runde-ende') {
-    console.log('[Bot] Stich/Runde Ende erkannt!');
-    await triggerPusher(roomChannel(roomId), EVENTS.STICH_ENDE, {
-      gewinner: state.aktuellerStich.gewinner,
-      stich: state.aktuellerStich,
+  try {
+    // Bot "denkt"
+    await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {
+      botId: aktuellerSpieler.id,
     });
 
-    // Runde-Ende sofort verarbeiten (kein setTimeout in serverless)
-    if (state.phase === 'runde-ende') {
-      console.log('[Bot] RUNDE ENDE! Berechne Ergebnis...');
-      // Kurze Pause für Animation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      try {
+    // Bot-Spielzug generieren
+    let karteId: string;
+    try {
+      karteId = await botSpielzug(state, aktuellerSpieler.id);
+    } catch (botError) {
+      console.error('[Bot] Fehler bei botSpielzug, spiele erste erlaubte Karte:', botError);
+      // Fallback: Spiele erste erlaubte Karte
+      const { spielbareKarten } = await import('@/lib/schafkopf/rules');
+      const erlaubteKarten = spielbareKarten(
+        aktuellerSpieler.hand,
+        state.aktuellerStich,
+        state.gespielteAnsage!,
+        state.gesuchteAss || undefined
+      );
+      if (erlaubteKarten.length === 0) {
+        console.error('[Bot] Keine erlaubten Karten! Hand:', aktuellerSpieler.hand);
+        return;
+      }
+      karteId = erlaubteKarten[0].id;
+    }
+
+    console.log('[Bot] Spielzug generiert:', karteId);
+
+    // Spielzug ausführen
+    state = verarbeiteSpielzug(state, aktuellerSpieler.id, karteId);
+    await saveGameState(state);
+
+    await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
+      botId: aktuellerSpieler.id,
+      action: 'spielzug',
+      karteId,
+    });
+
+    await broadcastGameState(roomId, state);
+
+    console.log('[Bot] Nach Spielzug - phase:', state.phase, 'stichNr:', state.stichNummer);
+
+    // Stich-Ende oder Runde-Ende?
+    if (state.phase === 'stich-ende' || state.phase === 'runde-ende') {
+      console.log('[Bot] Stich/Runde Ende erkannt!');
+      await triggerPusher(roomChannel(roomId), EVENTS.STICH_ENDE, {
+        gewinner: state.aktuellerStich.gewinner,
+        stich: state.aktuellerStich,
+      });
+
+      // Runde-Ende sofort verarbeiten (kein setTimeout in serverless)
+      if (state.phase === 'runde-ende') {
+        console.log('[Bot] RUNDE ENDE! Berechne Ergebnis...');
+        // Kurze Pause für Animation
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         const { state: endState, ergebnis } = beendeRunde(state);
         await saveGameState(endState);
         console.log('[Bot] Ergebnis:', ergebnis);
@@ -422,23 +539,50 @@ async function processeBotSpielzuege(roomId: string, state: SpielState | undefin
         await triggerPusher(roomChannel(roomId), EVENTS.RUNDE_ENDE, { ergebnis });
         await broadcastGameState(roomId, endState);
         console.log('[Bot] RUNDE_ENDE Event gesendet!');
-      } catch (error) {
-        console.error('[Bot] FEHLER bei beendeRunde:', error);
+      } else {
+        // Normaler Stich-Ende: Nach Pause nächster Stich
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        let currentState = await loadGameState(roomId);
+        if (!currentState || currentState.phase !== 'stich-ende') {
+          console.log('[Bot] State nicht mehr stich-ende, abbrechen');
+          return;
+        }
+
+        currentState = naechsterStich(currentState);
+        await saveGameState(currentState);
+        await broadcastGameState(roomId, currentState);
+        // Rekursion mit resettetem Retry-Counter (neuer Spielzug)
+        await processeBotSpielzuege(roomId, currentState, 0);
       }
     } else {
-      // Normaler Stich-Ende: Nach Pause nächster Stich
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      let currentState = await loadGameState(roomId);
-      if (!currentState || currentState.phase !== 'stich-ende') return;
-
-      currentState = naechsterStich(currentState);
-      await saveGameState(currentState);
-      await broadcastGameState(roomId, currentState);
-      await processeBotSpielzuege(roomId, currentState);
+      // Nächster Bot-Zug - Retry-Counter resetten (erfolgreicher Zug)
+      await processeBotSpielzuege(roomId, state, 0);
     }
-  } else {
-    // Nächster Bot-Zug
-    await processeBotSpielzuege(roomId, state);
+  } catch (error) {
+    console.error('[Bot] FEHLER in processeBotSpielzuege:', error);
+
+    // Retry-Limit prüfen
+    if (retryCount >= MAX_BOT_RETRIES) {
+      console.error('[Bot] Max Retries erreicht, breche ab. Spiel muss manuell fortgesetzt werden.');
+      // Event senden damit Client weiß, dass etwas schief ging
+      await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
+        botId: aktuellerSpieler.id,
+        action: 'error',
+        message: 'Bot konnte nicht spielen',
+      });
+      return;
+    }
+
+    // Bei Fehler: State neu laden und nochmal versuchen nach kurzer Pause
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const freshState = await loadGameState(roomId);
+    if (freshState?.phase === 'spielen') {
+      const nextPlayer = freshState.spieler[freshState.aktuellerSpieler];
+      if (nextPlayer?.isBot) {
+        console.log('[Bot] Retry nach Fehler... (Versuch', retryCount + 1, 'von', MAX_BOT_RETRIES, ')');
+        await processeBotSpielzuege(roomId, freshState, retryCount + 1);
+      }
+    }
   }
 }

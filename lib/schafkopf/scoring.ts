@@ -5,7 +5,7 @@ import { zaehlenLaufende } from './rules';
 import { zaehleAugen } from './cards';
 
 // Tarife in Cent
-export const TARIFE = {
+export const TARIFE: Record<Spielart, number> = {
   sauspiel: 10,
   wenz: 20,
   geier: 20,
@@ -14,7 +14,13 @@ export const TARIFE = {
   'farbsolo-herz': 20,
   'farbsolo-schellen': 20,
   hochzeit: 10,
-} as const;
+  'wenz-tout': 40,
+  'geier-tout': 40,
+  'farbsolo-eichel-tout': 40,
+  'farbsolo-gras-tout': 40,
+  'farbsolo-herz-tout': 40,
+  'farbsolo-schellen-tout': 40,
+};
 
 // Laufende-Bonus pro Laufendem (ab 3)
 export const LAUFENDE_BONUS = 10; // Cent
@@ -59,8 +65,15 @@ export function berechneErgebnis(params: AbrechnungsParams): SpielErgebnis {
     }
   }
 
-  // Gewinner bestimmen (61 Augen zum Gewinnen, bei Kontra braucht Spielmacher mehr)
-  const spielmacherGewinnt = spielmacherAugen >= 61;
+  // Tout-Spiel prüfen
+  const tout = spielart.endsWith('-tout');
+  // Bei Tout: Nur gewonnen wenn alle 6 Stiche gemacht wurden
+  const toutGewonnen = tout && spielmacherStiche === 6;
+
+  // Gewinner bestimmen
+  // Bei Tout: Nur gewonnen wenn alle Stiche gemacht wurden
+  // Normal: 61 Augen zum Gewinnen
+  const spielmacherGewinnt = tout ? toutGewonnen : spielmacherAugen >= 61;
   const gewinner = spielmacherGewinnt ? 'spielmacher' : 'gegner';
 
   // Schneider & Schwarz
@@ -72,8 +85,11 @@ export function berechneErgebnis(params: AbrechnungsParams): SpielErgebnis {
     ? gegnerStiche === 0
     : spielmacherStiche === 0;
 
-  // Laufende berechnen
-  const laufende = zaehlenLaufende(spielmacherAlleKarten, spielart);
+  // Laufende berechnen - basierend auf den ORIGINAL-Händen, nicht gewonnenen Karten
+  const spielmacherAnfangsKarten = spieler
+    .filter(s => spielmacherTeam.includes(s.id))
+    .flatMap(s => s.anfangsHand || s.hand); // Fallback auf hand für alte Spiele
+  const laufende = zaehlenLaufende(spielmacherAnfangsKarten, spielart);
 
   // Grundtarif
   const grundTarif = TARIFE[spielart];
@@ -98,6 +114,11 @@ export function berechneErgebnis(params: AbrechnungsParams): SpielErgebnis {
   // Kontra/Re anwenden
   gesamtWert *= kontraMultiplikator;
 
+  // Legen-Multiplikator: Jeder Leger verdoppelt den Spielwert
+  const anzahlLeger = spieler.filter(s => s.hatGelegt).length;
+  const legenMultiplikator = Math.pow(2, anzahlLeger);
+  gesamtWert *= legenMultiplikator;
+
   // Auszahlungen berechnen
   const auszahlungen = berechneAuszahlungen(
     spieler,
@@ -108,11 +129,16 @@ export function berechneErgebnis(params: AbrechnungsParams): SpielErgebnis {
 
   return {
     gewinner,
+    augenSpielmacher: spielmacherAugen,
+    augenGegner: gegnerAugen,
     schneider,
     schwarz,
+    tout,
+    toutGewonnen,
     laufende,
     grundTarif,
     kontraMultiplikator,
+    legenMultiplikator,
     gesamtWert,
     auszahlungen,
   };
@@ -194,7 +220,14 @@ export function formatiereBetrag(cent: number): string {
 export function ergebnisZusammenfassung(ergebnis: SpielErgebnis): string {
   let text = ergebnis.gewinner === 'spielmacher' ? 'Gewonnen!' : 'Verloren!';
 
-  if (ergebnis.schwarz) {
+  // Tout-Ergebnis
+  if (ergebnis.tout) {
+    if (ergebnis.toutGewonnen) {
+      text += ' (Tout geschafft!)';
+    } else {
+      text += ' (Tout nicht geschafft)';
+    }
+  } else if (ergebnis.schwarz) {
     text += ' (Schwarz)';
   } else if (ergebnis.schneider) {
     text += ' (Schneider)';
@@ -205,7 +238,7 @@ export function ergebnisZusammenfassung(ergebnis: SpielErgebnis): string {
   }
 
   if (ergebnis.kontraMultiplikator > 1) {
-    text += ergebnis.kontraMultiplikator === 4 ? ' (Re)' : ' (Du)';
+    text += ergebnis.kontraMultiplikator === 4 ? ' (Re)' : ' (Kontra)';
   }
 
   return text;

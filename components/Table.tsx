@@ -1,10 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { SpielState } from '@/lib/schafkopf/types';
 import { spielbareKarten } from '@/lib/schafkopf/rules';
+import { apiUrl } from '@/lib/api';
+import { kannAusIs } from '@/lib/aus-is';
+import { AUS_IS, randomPhrase, speak } from '@/lib/bavarian-speech';
 import Hand from './Hand';
 import PlayerInfo from './PlayerInfo';
-import Stich from './Stich';
+import Stich, { LetzterStich } from './Stich';
 
 interface TableProps {
   state: SpielState;
@@ -29,6 +33,8 @@ export default function Table({
   isCollecting = false,
   speechBubble = null,
 }: TableProps) {
+  const [showLetzterStich, setShowLetzterStich] = useState(false);
+
   // Meine Position finden
   const myIndex = state.spieler.findIndex(s => s.id === myPlayerId);
   const mySpieler = state.spieler[myIndex];
@@ -228,25 +234,63 @@ export default function Table({
           boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         }}
       >
-        <div className="font-semibold text-amber-200">
-          {state.gespielteAnsage
-            ? state.gespielteAnsage.charAt(0).toUpperCase() + state.gespielteAnsage.slice(1)
-            : 'Ansage...'}
-        </div>
-        <div className="text-gray-300">Stich {state.stichNummer + 1}/6</div>
+        {state.gespielteAnsage ? (
+          <>
+            <div className="font-semibold text-amber-200">
+              {formatAnsage(state.gespielteAnsage, state.gesuchteAss)}
+            </div>
+            <div className="text-gray-400 text-xs">
+              von {state.spieler.find(s => s.id === state.spielmacher)?.name || 'Unbekannt'}
+            </div>
+          </>
+        ) : (
+          <div className="font-semibold text-amber-200">Ansage...</div>
+        )}
+        <div className="text-gray-300 mt-1">Stich {state.stichNummer + 1}/6</div>
         {state.kontra && <div className="text-red-400 font-bold">Du!</div>}
         {state.re && <div className="text-amber-400 font-bold">Re!</div>}
+        {state.letzterStich && state.letzterStich.karten.length > 0 && (
+          <button
+            onClick={() => setShowLetzterStich(true)}
+            className="mt-2 text-xs px-2 py-1 rounded transition-all hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, rgba(139,90,43,0.8) 0%, rgba(62,39,35,0.8) 100%)',
+              border: '1px solid rgba(212,175,55,0.5)',
+              color: '#e5d3b3',
+            }}
+          >
+            Letzter Stich
+          </button>
+        )}
       </div>
 
-      {/* Du/Re Buttons (dekoriert) */}
-      {state.phase === 'spielen' && state.stichNummer === 0 && (
-        <div className="absolute top-6 sm:top-10 right-6 sm:right-10 flex gap-2">
-          {!state.kontra && state.spielmacher !== myPlayerId && state.partner !== myPlayerId && (
-            <DuButton roomId={state.id} playerId={myPlayerId} />
-          )}
-          {state.kontra && !state.re && (state.spielmacher === myPlayerId || state.partner === myPlayerId) && (
-            <ReButton roomId={state.id} playerId={myPlayerId} />
-          )}
+      {/* Kontra/Re Buttons - bis man selbst ausgespielt hat */}
+      {(() => {
+        // Kontra möglich: Bis man selbst eine Karte gespielt hat
+        // Prüfe ob ich bereits in einem Stich gespielt habe
+        const hatSchonGespielt = state.stichNummer > 0 ||
+          state.aktuellerStich.karten.some(k => k.spielerId === myPlayerId);
+
+        const showKontraRe = (state.phase === 'spielen' || state.phase === 'stich-ende') && !hatSchonGespielt;
+
+        if (!showKontraRe) return null;
+
+        return (
+          <div className="absolute top-6 sm:top-10 right-6 sm:right-10 flex gap-2">
+            {!state.kontra && state.spielmacher !== myPlayerId && state.partner !== myPlayerId && (
+              <KontraButton roomId={state.id} playerId={myPlayerId} />
+            )}
+            {state.kontra && !state.re && (state.spielmacher === myPlayerId || state.partner === myPlayerId) && (
+              <ReButton roomId={state.id} playerId={myPlayerId} />
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Aus is! Button */}
+      {kannAusIs(state, myPlayerId) && (
+        <div className="absolute bottom-32 sm:bottom-36 right-4 sm:right-8">
+          <AusIsButton roomId={state.id} playerId={myPlayerId} />
         </div>
       )}
 
@@ -255,6 +299,15 @@ export default function Table({
       <TableCorner position="top-right" />
       <TableCorner position="bottom-left" />
       <TableCorner position="bottom-right" />
+
+      {/* Letzter Stich Modal */}
+      {showLetzterStich && state.letzterStich && state.letzterStich.karten.length > 0 && (
+        <LetzterStich
+          stich={state.letzterStich}
+          spieler={state.spieler}
+          onClose={() => setShowLetzterStich(false)}
+        />
+      )}
     </div>
   );
 }
@@ -280,9 +333,9 @@ function TableCorner({ position }: { position: 'top-left' | 'top-right' | 'botto
   );
 }
 
-function DuButton({ roomId, playerId }: { roomId: string; playerId: string }) {
-  const handleDu = async () => {
-    await fetch('/api/game', {
+function KontraButton({ roomId, playerId }: { roomId: string; playerId: string }) {
+  const handleKontra = async () => {
+    await fetch(apiUrl('/api/game'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'du', roomId, playerId }),
@@ -291,7 +344,7 @@ function DuButton({ roomId, playerId }: { roomId: string; playerId: string }) {
 
   return (
     <button
-      onClick={handleDu}
+      onClick={handleKontra}
       className="px-3 py-1.5 rounded-lg font-bold text-sm transition-all duration-200 hover:scale-105"
       style={{
         background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
@@ -300,14 +353,14 @@ function DuButton({ roomId, playerId }: { roomId: string; playerId: string }) {
         color: 'white',
       }}
     >
-      Du!
+      Kontra!
     </button>
   );
 }
 
 function ReButton({ roomId, playerId }: { roomId: string; playerId: string }) {
   const handleRe = async () => {
-    await fetch('/api/game', {
+    await fetch(apiUrl('/api/game'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 're', roomId, playerId }),
@@ -328,6 +381,71 @@ function ReButton({ roomId, playerId }: { roomId: string; playerId: string }) {
       Re!
     </button>
   );
+}
+
+function AusIsButton({ roomId, playerId }: { roomId: string; playerId: string }) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAusIs = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    // Spruch abspielen
+    const phrase = randomPhrase(AUS_IS);
+    speak(phrase.speech);
+
+    await fetch(apiUrl('/api/game'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'ausIs', roomId, playerId }),
+    });
+
+    setIsLoading(false);
+  };
+
+  return (
+    <button
+      onClick={handleAusIs}
+      disabled={isLoading}
+      className="px-4 py-2 rounded-lg font-bold text-base transition-all duration-200 hover:scale-105 animate-pulse"
+      style={{
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        boxShadow: '0 4px 12px rgba(16,185,129,0.5)',
+        border: '2px solid rgba(255,255,255,0.3)',
+        color: 'white',
+      }}
+    >
+      Aus is!
+    </button>
+  );
+}
+
+// Formatiert die Ansage für die Anzeige
+function formatAnsage(ansage: string, gesuchteAss?: string | null): string {
+  const FARBEN_NAMEN: Record<string, string> = {
+    eichel: 'Eichel',
+    gras: 'Gras',
+    herz: 'Herz',
+    schellen: 'Schellen',
+  };
+
+  if (ansage === 'sauspiel' && gesuchteAss) {
+    return `Sauspiel auf ${FARBEN_NAMEN[gesuchteAss] || gesuchteAss}`;
+  }
+
+  if (ansage.startsWith('farbsolo-')) {
+    const farbe = ansage.replace('farbsolo-', '');
+    return `${FARBEN_NAMEN[farbe] || farbe}-Solo`;
+  }
+
+  const ANSAGEN_NAMEN: Record<string, string> = {
+    sauspiel: 'Sauspiel',
+    wenz: 'Wenz',
+    geier: 'Geier',
+    hochzeit: 'Hochzeit',
+  };
+
+  return ANSAGEN_NAMEN[ansage] || ansage.charAt(0).toUpperCase() + ansage.slice(1);
 }
 
 // Bayerische Sprechblase

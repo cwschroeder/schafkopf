@@ -11,6 +11,7 @@ import {
   getRoom,
   getAllRooms,
   generatePlayerId,
+  deleteRoom,
 } from '@/lib/rooms';
 import { getPusherServer, EVENTS, lobbyChannel, roomChannel } from '@/lib/pusher';
 import { erstelleSpiel, saveGameState } from '@/lib/schafkopf/game-state';
@@ -182,6 +183,31 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true, roomId });
+      }
+
+      case 'delete': {
+        const { playerId, playerName } = body;
+        const room = await getRoom(roomId);
+
+        if (!room) {
+          return NextResponse.json({ error: 'Raum nicht gefunden' }, { status: 404 });
+        }
+
+        // Ersteller darf löschen, oder wenn der Raumname den Spielernamen enthält
+        const isCreator = room.ersteller === playerId;
+        const nameMatches = playerName && room.name.includes(playerName);
+        if (!isCreator && !nameMatches) {
+          return NextResponse.json({ error: 'Nur der Ersteller kann den Raum löschen' }, { status: 403 });
+        }
+
+        await deleteRoom(roomId);
+
+        await Promise.all([
+          triggerPusher(lobbyChannel(), EVENTS.ROOM_DELETED, { roomId }),
+          triggerPusher(roomChannel(roomId), EVENTS.ROOM_DELETED, { roomId }),
+        ]);
+
+        return NextResponse.json({ success: true });
       }
 
       default:

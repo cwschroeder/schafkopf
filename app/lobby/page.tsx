@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore, loadPlayerFromStorage } from '@/lib/store';
-import { getPusherClient, EVENTS, lobbyChannel, roomChannel } from '@/lib/pusher';
+import { getPusherClient, EVENTS, lobbyChannel, subscribeToChannel, unsubscribeFromChannel } from '@/lib/pusher';
 import { Raum } from '@/lib/schafkopf/types';
+import { apiUrl } from '@/lib/api';
 
 export default function Lobby() {
   const router = useRouter();
@@ -29,22 +30,22 @@ export default function Lobby() {
 
   // Räume laden
   useEffect(() => {
-    fetch('/api/rooms')
+    fetch(apiUrl('/api/rooms'))
       .then(res => res.json())
       .then(data => setRooms(data))
       .catch(console.error);
   }, [setRooms]);
 
-  // Pusher abonnieren
+  // Socket.IO abonnieren
   useEffect(() => {
     if (!playerId || !playerName) return;
 
-    const pusher = getPusherClient(playerId, playerName);
-    if (!pusher) {
-      console.warn('Pusher nicht verfügbar - Polling-Fallback für Lobby');
+    const socket = getPusherClient(playerId, playerName);
+    if (!socket) {
+      console.warn('Socket nicht verfügbar - Polling-Fallback für Lobby');
       // Polling-Fallback
       const interval = setInterval(() => {
-        fetch('/api/rooms')
+        fetch(apiUrl('/api/rooms'))
           .then(res => res.json())
           .then(data => { if (Array.isArray(data)) setRooms(data); })
           .catch(() => {});
@@ -52,23 +53,24 @@ export default function Lobby() {
       return () => clearInterval(interval);
     }
 
-    const channel = pusher.subscribe(lobbyChannel());
+    // Channel abonnieren
+    const channel = lobbyChannel();
+    subscribeToChannel(socket, channel, playerId, playerName);
 
-    channel.bind(EVENTS.ROOM_CREATED, (room: Raum) => {
-      addRoom(room);
-    });
+    // Event-Handler registrieren
+    const handleRoomCreated = (room: Raum) => addRoom(room);
+    const handleRoomUpdated = (room: Raum) => updateRoom(room);
+    const handleRoomDeleted = ({ roomId }: { roomId: string }) => removeRoom(roomId);
 
-    channel.bind(EVENTS.ROOM_UPDATED, (room: Raum) => {
-      updateRoom(room);
-    });
-
-    channel.bind(EVENTS.ROOM_DELETED, ({ roomId }: { roomId: string }) => {
-      removeRoom(roomId);
-    });
+    socket.on(EVENTS.ROOM_CREATED, handleRoomCreated);
+    socket.on(EVENTS.ROOM_UPDATED, handleRoomUpdated);
+    socket.on(EVENTS.ROOM_DELETED, handleRoomDeleted);
 
     return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(lobbyChannel());
+      socket.off(EVENTS.ROOM_CREATED, handleRoomCreated);
+      socket.off(EVENTS.ROOM_UPDATED, handleRoomUpdated);
+      socket.off(EVENTS.ROOM_DELETED, handleRoomDeleted);
+      unsubscribeFromChannel(socket, channel);
     };
   }, [playerId, playerName, addRoom, updateRoom, removeRoom, setRooms]);
 
@@ -78,7 +80,7 @@ export default function Lobby() {
 
     setIsCreating(true);
     try {
-      const res = await fetch('/api/rooms', {
+      const res = await fetch(apiUrl('/api/rooms'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -104,7 +106,7 @@ export default function Lobby() {
     if (!playerName) return;
 
     try {
-      const res = await fetch('/api/rooms', {
+      const res = await fetch(apiUrl('/api/rooms'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -270,6 +272,8 @@ export default function Lobby() {
                 <RoomCard
                   key={room.id}
                   room={room}
+                  playerId={playerId}
+                  playerName={playerName || ''}
                   onJoin={async () => {
                     const error = await joinRoom(room.id);
                     if (error) alert(error);
@@ -295,15 +299,37 @@ export default function Lobby() {
 
 function RoomCard({
   room,
+  playerId,
+  playerName,
   onJoin,
   isMyRoom,
 }: {
   room: Raum;
+  playerId: string;
+  playerName: string;
   onJoin: () => void;
   isMyRoom: boolean;
 }) {
   const spielerCount = room.spieler.length;
   const isFull = spielerCount >= 4;
+  const isCreator = room.ersteller === playerId;
+  // Auch löschen erlauben wenn der Raumname den Spielernamen enthält (für alte Räume)
+  const canDelete = isCreator || room.name.includes(playerName);
+
+  const deleteRoom = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Raum wirklich löschen?')) return;
+
+    try {
+      await fetch(apiUrl('/api/rooms'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', roomId: room.id, playerId, playerName }),
+      });
+    } catch (error) {
+      console.error('Fehler beim Löschen:', error);
+    }
+  };
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 flex items-center justify-between">
@@ -326,15 +352,26 @@ function RoomCard({
         </div>
       </div>
 
-      <button
-        onClick={onJoin}
-        disabled={isFull && !isMyRoom}
-        className={`btn ${isMyRoom ? 'btn-secondary' : 'btn-primary'} ${
-          isFull && !isMyRoom ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
-      >
-        {isMyRoom ? 'Zurück' : isFull ? 'Voll' : 'Beitreten'}
-      </button>
+      <div className="flex gap-2">
+        {canDelete && (
+          <button
+            onClick={deleteRoom}
+            className="btn text-sm bg-red-800 hover:bg-red-700 text-white px-2"
+            title="Raum löschen"
+          >
+            🗑️
+          </button>
+        )}
+        <button
+          onClick={onJoin}
+          disabled={isFull && !isMyRoom}
+          className={`btn ${isMyRoom ? 'btn-secondary' : 'btn-primary'} ${
+            isFull && !isMyRoom ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {isMyRoom ? 'Zurück' : isFull ? 'Voll' : 'Beitreten'}
+        </button>
+      </div>
     </div>
   );
 }

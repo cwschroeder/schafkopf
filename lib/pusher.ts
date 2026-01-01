@@ -1,83 +1,126 @@
-// Pusher Server & Client Konfiguration
+// Real-time Kommunikation - Socket.IO Implementation
+// Ersetzt Pusher mit selbst-gehostetem Socket.IO Server
 
-import Pusher from 'pusher';
-import PusherClient from 'pusher-js';
+import { io, Socket } from 'socket.io-client';
 
-// Server-seitige Pusher-Instanz (Lazy Initialization)
-let pusherServerInstance: Pusher | null = null;
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-export function getPusherServer(): Pusher {
-  if (!pusherServerInstance) {
-    if (!process.env.PUSHER_APP_ID || !process.env.PUSHER_KEY ||
-        !process.env.PUSHER_SECRET || !process.env.PUSHER_CLUSTER) {
-      throw new Error('Pusher Server-Konfiguration fehlt. Bitte Umgebungsvariablen setzen.');
-    }
-    pusherServerInstance = new Pusher({
-      appId: process.env.PUSHER_APP_ID,
-      key: process.env.PUSHER_KEY,
-      secret: process.env.PUSHER_SECRET,
-      cluster: process.env.PUSHER_CLUSTER,
-      useTLS: true,
-    });
-  }
-  return pusherServerInstance;
+// Socket Server URL (läuft auf Port 3002)
+const SOCKET_SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3002';
+
+// Server-seitige Trigger-Funktion (ruft den Socket-Server via HTTP auf)
+export function getPusherServer() {
+  const triggerUrl = process.env.SOCKET_TRIGGER_URL || 'http://localhost:3002/trigger';
+
+  return {
+    trigger: async (channel: string | string[], event: string, data: unknown) => {
+      const channels = Array.isArray(channel) ? channel : [channel];
+
+      for (const ch of channels) {
+        try {
+          const response = await fetch(triggerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ channel: ch, event, data }),
+          });
+
+          if (!response.ok) {
+            console.warn(`[Socket] Trigger fehlgeschlagen für ${ch}:${event}`);
+          }
+        } catch (e) {
+          console.warn(`[Socket] Trigger-Fehler für ${ch}:${event}:`, e);
+        }
+      }
+    },
+    // Kompatibilitäts-Dummy für authorizeChannel
+    authorizeChannel: () => null,
+  };
 }
 
-// Legacy export für Kompatibilität (wird bei erstem Zugriff initialisiert)
-export const pusherServer = {
-  trigger: (...args: Parameters<Pusher['trigger']>) => getPusherServer().trigger(...args),
-  authorizeChannel: (...args: Parameters<Pusher['authorizeChannel']>) => getPusherServer().authorizeChannel(...args),
-};
+// Legacy export für Kompatibilität
+export const pusherServer = getPusherServer();
 
-// Client-seitige Pusher-Instanz (mit dynamischen Auth-Params)
-let pusherClientInstance: PusherClient | null = null;
+// Client-seitige Socket.IO-Instanz
+let socketInstance: Socket | null = null;
 let currentPlayerId: string | null = null;
 let currentPlayerName: string | null = null;
 
-export function getPusherClient(playerId?: string, playerName?: string): PusherClient | null {
+export function getPusherClient(playerId?: string, playerName?: string): Socket | null {
   if (typeof window === 'undefined') {
     return null;
   }
 
-  const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-  const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+  // Socket.IO URL bestimmen
+  let socketUrl = SOCKET_SERVER_URL;
 
-  if (!key || !cluster) {
-    console.warn('Pusher nicht konfiguriert - Echtzeit-Features deaktiviert');
-    return null;
+  // Im Browser: Relative URL basierend auf aktuellem Host
+  if (typeof window !== 'undefined') {
+    const host = window.location.host;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+    // Auf Production: Socket-Server läuft auf separatem Port
+    // Auf lokaler Entwicklung: localhost:3002
+    if (host.includes('mqtt.ivu-software.de')) {
+      // Production: Nginx proxy zum Socket-Server
+      socketUrl = `${window.location.protocol}//${host}`;
+    }
   }
 
-  // Neuen Client erstellen wenn sich Player-Info ändert
+  // Neuen Socket erstellen wenn sich Player-Info ändert
   if (playerId && playerName && (playerId !== currentPlayerId || playerName !== currentPlayerName)) {
-    if (pusherClientInstance) {
-      pusherClientInstance.disconnect();
+    if (socketInstance) {
+      socketInstance.disconnect();
     }
+
     currentPlayerId = playerId;
     currentPlayerName = playerName;
-    pusherClientInstance = new PusherClient(key, {
-      cluster,
-      authEndpoint: '/api/pusher/auth',
-      auth: {
-        params: {
-          playerId,
-          playerName,
-        },
-      },
+
+    socketInstance = io(socketUrl, {
+      path: `${basePath}/socket.io`,
+      auth: { playerId, playerName },
+      transports: ['websocket', 'polling'],
+    });
+
+    socketInstance.on('connect', () => {
+      console.log('[Socket] Verbunden:', socketInstance?.id);
+    });
+
+    socketInstance.on('disconnect', () => {
+      console.log('[Socket] Getrennt');
+    });
+
+    socketInstance.on('connect_error', (err) => {
+      console.warn('[Socket] Verbindungsfehler:', err.message);
     });
   }
 
-  // Falls noch kein Client und keine Player-Info, trotzdem erstellen (für Lobby etc.)
-  if (!pusherClientInstance && !playerId) {
-    pusherClientInstance = new PusherClient(key, {
-      cluster,
-      authEndpoint: '/api/pusher/auth',
+  // Falls noch kein Socket und keine Player-Info, trotzdem erstellen
+  if (!socketInstance && !playerId) {
+    socketInstance = io(socketUrl, {
+      path: `${basePath}/socket.io`,
+      transports: ['websocket', 'polling'],
     });
   }
 
-  return pusherClientInstance;
+  return socketInstance;
 }
 
-// Event-Namen
+// Hilfsfunktion zum Abonnieren eines Channels
+export function subscribeToChannel(
+  socket: Socket,
+  channel: string,
+  playerId?: string,
+  playerName?: string
+): void {
+  socket.emit('subscribe', { channel, playerId, playerName });
+}
+
+// Hilfsfunktion zum Verlassen eines Channels
+export function unsubscribeFromChannel(socket: Socket, channel: string): void {
+  socket.emit('unsubscribe', channel);
+}
+
+// Event-Namen (unverändert)
 export const EVENTS = {
   // Lobby-Events
   ROOM_CREATED: 'room-created',
@@ -97,13 +140,17 @@ export const EVENTS = {
   RUNDE_ENDE: 'runde-ende',
   DU_GESAGT: 'du-gesagt',
   RE_GESAGT: 're-gesagt',
+  AUS_IS: 'aus-is',
 
   // Bot-Events
   BOT_THINKING: 'bot-thinking',
   BOT_ACTION: 'bot-action',
+
+  // Voice-Events
+  VOICE_MESSAGE: 'voice-message',
 } as const;
 
-// Channel-Namen
+// Channel-Namen (unverändert)
 export function lobbyChannel(): string {
   return 'presence-lobby';
 }

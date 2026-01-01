@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Ansage, Farbe, Karte } from '@/lib/schafkopf/types';
+import { Ansage, Farbe, Karte, Spielart } from '@/lib/schafkopf/types';
 import { istTrumpf } from '@/lib/schafkopf/rules';
 
 interface GameAnnounceProps {
   hand: Karte[];
   onAnsage: (ansage: Ansage, gesuchteAss?: Farbe) => void;
-  bisherigeHoechsteAnsage?: Ansage | null;
+  bisherigeHoechsteAnsage?: Spielart | null;
 }
 
 // Bayerische Farbsymbole als SVG-Komponenten (passend zum noto Kartendeck)
@@ -81,6 +81,7 @@ export default function GameAnnounce({
 }: GameAnnounceProps) {
   const [showSauSelection, setShowSauSelection] = useState(false);
   const [showSoloSelection, setShowSoloSelection] = useState(false);
+  const [showSoloToutSelection, setShowSoloToutSelection] = useState(false);
 
   // Welche Sauspiel-Farben sind möglich?
   const moeglicheSauFarben: Farbe[] = (['eichel', 'gras', 'schellen'] as Farbe[]).filter(farbe => {
@@ -98,15 +99,23 @@ export default function GameAnnounce({
     'farbsolo-gras': 3,
     'farbsolo-herz': 3,
     'farbsolo-schellen': 3,
+    'wenz-tout': 4,
+    'geier-tout': 4,
+    'farbsolo-eichel-tout': 5,
+    'farbsolo-gras-tout': 5,
+    'farbsolo-herz-tout': 5,
+    'farbsolo-schellen-tout': 5,
   };
 
   const aktuelleWertigkeit = bisherigeHoechsteAnsage
-    ? spielWertigkeit[bisherigeHoechsteAnsage]
+    ? spielWertigkeit[bisherigeHoechsteAnsage] || 0
     : 0;
 
   const kannSauspielSagen = aktuelleWertigkeit < 1 && moeglicheSauFarben.length > 0;
   const kannWenzOderGeierSagen = aktuelleWertigkeit < 2;
   const kannSoloSagen = aktuelleWertigkeit < 3;
+  const kannWenzGeierToutSagen = aktuelleWertigkeit < 4;
+  const kannSoloToutSagen = aktuelleWertigkeit < 5;
 
   const containerStyle = {
     background: 'linear-gradient(135deg, #3e2723 0%, #4e342e 100%)',
@@ -190,6 +199,51 @@ export default function GameAnnounce({
     );
   }
 
+  if (showSoloToutSelection) {
+    return (
+      <div className="rounded-2xl p-5 flex flex-col gap-4 min-w-[280px]" style={containerStyle}>
+        <h3
+          className="text-xl font-bold text-center"
+          style={{
+            background: 'linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Welches Solo Tout?
+        </h3>
+        <p className="text-xs text-amber-200 text-center -mt-2">
+          Du musst ALLE Stiche machen!
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {(['eichel', 'gras', 'herz', 'schellen'] as Farbe[]).map(farbe => (
+            <button
+              key={farbe}
+              onClick={() => {
+                onAnsage(`farbsolo-${farbe}-tout` as Ansage);
+                setShowSoloToutSelection(false);
+              }}
+              className="btn flex flex-col items-center gap-2 py-3 px-4"
+              style={{
+                background: 'linear-gradient(135deg, #c92a2a 0%, #a61e1e 100%)',
+                border: '1px solid rgba(255,255,255,0.2)',
+              }}
+            >
+              <FarbIcon farbe={farbe} size={28} />
+              <span className="capitalize text-sm text-white">{farbe}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowSoloToutSelection(false)}
+          className="btn btn-secondary py-3"
+        >
+          ← Zurück
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl p-4 flex flex-col gap-3 min-w-[260px]" style={containerStyle}>
       <h3
@@ -236,6 +290,51 @@ export default function GameAnnounce({
             className="btn btn-primary flex items-center justify-center gap-2 py-3 text-base"
           >
             Farbsolo
+          </button>
+        )}
+
+        {/* Tout-Optionen - höhere Spiele */}
+        {kannWenzGeierToutSagen && (
+          <div className="border-t border-amber-900/50 pt-2 mt-1">
+            <p className="text-xs text-amber-400 text-center mb-2">Tout (alle Stiche)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onAnsage('wenz-tout')}
+                className="btn flex items-center justify-center gap-2 py-2 text-sm"
+                style={{
+                  background: 'linear-gradient(135deg, #c92a2a 0%, #a61e1e 100%)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                }}
+              >
+                Wenz Tout
+              </button>
+              <button
+                onClick={() => onAnsage('geier-tout')}
+                className="btn flex items-center justify-center gap-2 py-2 text-sm"
+                style={{
+                  background: 'linear-gradient(135deg, #c92a2a 0%, #a61e1e 100%)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                }}
+              >
+                Geier Tout
+              </button>
+            </div>
+          </div>
+        )}
+
+        {kannSoloToutSagen && (
+          <button
+            onClick={() => setShowSoloToutSelection(true)}
+            className="btn flex items-center justify-center gap-2 py-2 text-sm"
+            style={{
+              background: 'linear-gradient(135deg, #c92a2a 0%, #a61e1e 100%)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'white',
+            }}
+          >
+            Farbsolo Tout
           </button>
         )}
       </div>

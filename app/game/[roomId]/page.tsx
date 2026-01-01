@@ -3,14 +3,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useGameStore, loadPlayerFromStorage } from '@/lib/store';
-import { getPusherClient, EVENTS, roomChannel } from '@/lib/pusher';
+import { getPusherClient, EVENTS, roomChannel, subscribeToChannel, unsubscribeFromChannel } from '@/lib/pusher';
 import { SpielState, Raum, Ansage, Farbe, SpielErgebnis } from '@/lib/schafkopf/types';
 import Table from '@/components/Table';
 import DealingAnimation from '@/components/DealingAnimation';
 import GameLegen from '@/components/GameLegen';
 import GameAnnounce from '@/components/GameAnnounce';
 import ScoreBoard from '@/components/ScoreBoard';
+import { VoiceButton } from '@/components/VoiceButton';
 import { useBavarianSpeech } from '@/hooks/useBavarianSpeech';
+import { playBase64Audio } from '@/lib/tts-client';
+import { apiUrl } from '@/lib/api';
+import {
+  checkMitspielerReaktionNachStich,
+  checkPartnerGefunden,
+  checkAufforderungStechen,
+  resetStichHistorie,
+  MitspielerReaktion,
+} from '@/lib/mitspieler-reaktionen';
+import { AUGEN } from '@/lib/schafkopf/cards';
 
 export default function GamePage() {
   const router = useRouter();
@@ -38,9 +49,38 @@ export default function GamePage() {
   const [isCollecting, setIsCollecting] = useState(false);
   const [speechBubble, setSpeechBubble] = useState<{ text: string; playerId: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false); // Für sofortiges Button-Feedback
+  const [roomNotFound, setRoomNotFound] = useState(false); // Raum existiert nicht
+  const [linkCopied, setLinkCopied] = useState(false); // Feedback für Link kopiert
 
   // Bayerische Sprachausgabe
-  const { speakAnsage, speakStichGewonnen, ensureAudioReady } = useBavarianSpeech();
+  const { speakAnsage, speakStichGewonnen, speakMitspielerReaktion, ensureAudioReady } = useBavarianSpeech();
+
+  // Helper: Trigger Bots wenn ein Bot dran ist (wichtig bei Page Reload)
+  const triggerBotsIfNeeded = useCallback(async (state: SpielState) => {
+    if (!state) return;
+
+    // Prüfen ob ein Bot in der aktuellen Phase aktiv sein sollte
+    const phase = state.phase;
+    const aktuellerSpielerIndex = state.aktuellerSpieler;
+    const aktuellerSpieler = state.spieler[aktuellerSpielerIndex];
+
+    // Bot ist dran?
+    const botIstDran = aktuellerSpieler?.isBot;
+
+    // In Phasen wo Bots agieren sollten
+    if ((phase === 'legen' || phase === 'ansagen' || phase === 'spielen') && botIstDran) {
+      console.log('[GamePage] Bot ist dran, trigger Bots API...', { phase, bot: aktuellerSpieler?.name });
+      try {
+        await fetch(apiUrl('/api/game'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'triggerBots', roomId }),
+        });
+      } catch (e) {
+        console.warn('[GamePage] triggerBots fehlgeschlagen:', e);
+      }
+    }
+  }, [roomId]);
 
   // Animation bei neuem Spiel zeigen
   useEffect(() => {
@@ -75,40 +115,59 @@ export default function GamePage() {
   useEffect(() => {
     if (!playerId) return;
 
-    // Raum-Info laden (direkt per ID)
-    fetch(`/api/rooms?roomId=${roomId}`)
-      .then(res => {
-        if (res.ok) return res.json();
-        return null;
-      })
-      .then((room: Raum | null) => {
-        if (room) {
-          setWaitingRoom(room);
-          setCurrentRoom(room);
-        }
-      })
-      .catch(console.error);
+    let roomFound = false;
+    let gameFound = false;
 
-    // Spielzustand laden (falls Spiel bereits läuft)
-    // 404 ist normal wenn Spiel noch nicht gestartet
-    fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(state => { if (state) setGameState(state); })
-      .catch(() => { /* Spiel existiert noch nicht */ });
-  }, [playerId, roomId, setCurrentRoom, setGameState]);
+    // Beide Requests parallel starten
+    Promise.all([
+      // Raum-Info laden (direkt per ID)
+      fetch(apiUrl(`/api/rooms?roomId=${roomId}`))
+        .then(res => {
+          if (res.ok) return res.json();
+          return null;
+        })
+        .then((room: Raum | null) => {
+          if (room) {
+            roomFound = true;
+            setWaitingRoom(room);
+            setCurrentRoom(room);
+          }
+        })
+        .catch(console.error),
 
-  // Pusher abonnieren
+      // Spielzustand laden (falls Spiel bereits läuft)
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
+        .then(res => res.ok ? res.json() : null)
+        .then(state => {
+          if (state) {
+            gameFound = true;
+            setGameState(state);
+            // Wenn ein Bot dran ist, triggerBots aufrufen (wichtig bei Page Reload)
+            triggerBotsIfNeeded(state);
+          }
+        })
+        .catch(() => { /* Spiel existiert noch nicht */ })
+    ]).then(() => {
+      // Nach beiden Requests: Wenn weder Raum noch Spiel gefunden, zur Lobby
+      if (!roomFound && !gameFound) {
+        console.warn('[GamePage] Raum/Spiel nicht gefunden, redirect zur Lobby');
+        setRoomNotFound(true);
+      }
+    });
+  }, [playerId, roomId, setCurrentRoom, setGameState, triggerBotsIfNeeded]);
+
+  // Socket.IO abonnieren
   useEffect(() => {
     if (!playerId || !playerName) return;
 
-    const pusher = getPusherClient(playerId, playerName);
-    if (!pusher) {
-      console.warn('Pusher nicht verfügbar - Polling-Fallback aktiv');
-      // Polling-Fallback wenn kein Pusher - jede Sekunde
+    const socket = getPusherClient(playerId, playerName);
+    if (!socket) {
+      console.warn('Socket nicht verfügbar - Polling-Fallback aktiv');
+      // Polling-Fallback wenn kein Socket - jede Sekunde
       const interval = setInterval(async () => {
         // Raum-State laden (für Waiting Room)
         try {
-          const roomRes = await fetch(`/api/rooms?roomId=${roomId}`);
+          const roomRes = await fetch(apiUrl(`/api/rooms?roomId=${roomId}`));
           if (roomRes.ok) {
             const room = await roomRes.json();
             setWaitingRoom(room);
@@ -117,7 +176,7 @@ export default function GamePage() {
         } catch {}
         // Game-State laden (für laufendes Spiel)
         try {
-          const gameRes = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+          const gameRes = await fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`));
           if (gameRes.ok) {
             const state = await gameRes.json();
             setGameState(state);
@@ -126,112 +185,197 @@ export default function GamePage() {
       }, 1000);
       return () => clearInterval(interval);
     }
-    const channel = pusher.subscribe(roomChannel(roomId));
 
-    // Raum-Events
-    channel.bind(EVENTS.PLAYER_JOINED, ({ room }: { room: Raum }) => {
-      setWaitingRoom(room);
-    });
+    // Channel abonnieren
+    const channel = roomChannel(roomId);
+    subscribeToChannel(socket, channel, playerId, playerName);
 
-    channel.bind(EVENTS.PLAYER_LEFT, ({ room }: { room: Raum }) => {
-      setWaitingRoom(room);
-    });
-
-    channel.bind(EVENTS.PLAYER_READY, ({ room }: { room: Raum }) => {
-      setWaitingRoom(room);
-    });
-
-    channel.bind(EVENTS.ROOM_UPDATED, (room: Raum) => {
-      setWaitingRoom(room);
-    });
-
-    channel.bind(EVENTS.GAME_STARTING, ({ gameState }: { gameState: SpielState }) => {
-      setGameState(gameState);
+    // Raum-Events Handler
+    const handlePlayerJoined = ({ room }: { room: Raum }) => setWaitingRoom(room);
+    const handlePlayerLeft = ({ room }: { room: Raum }) => setWaitingRoom(room);
+    const handlePlayerReady = ({ room }: { room: Raum }) => setWaitingRoom(room);
+    const handleRoomUpdated = (room: Raum) => setWaitingRoom(room);
+    const handleGameStarting = ({ gameState: gs }: { gameState: SpielState }) => {
+      setGameState(gs);
       setErgebnis(null);
-    });
+      // Stich-Historie für Mitspieler-Reaktionen zurücksetzen
+      resetStichHistorie();
+    };
 
-    // Spiel-Events
-    channel.bind(EVENTS.GAME_STATE, (state: Partial<SpielState>) => {
-      // Fetch full state für eigene Karten
-      fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
+    // Spiel-Events Handler
+    const handleGameState = () => {
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
         .then(fullState => setGameState(fullState))
         .catch(console.error);
-    });
+    };
 
-    channel.bind(EVENTS.LEGEN, () => {
-      // State neu laden nach Legen-Entscheidung
-      fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
+    const handleLegen = () => {
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
         .then(state => setGameState(state))
         .catch(console.error);
-    });
+    };
 
-    channel.bind(EVENTS.STICH_ENDE, ({ gewinner }: { gewinner: string }) => {
-      // Bot-Spruch wenn Bot gewinnt
-      fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
+    const handleAnsage = () => {
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
+        .then(res => res.json())
+        .then(state => setGameState(state))
+        .catch(console.error);
+    };
+
+    const handleKarteGespielt = (data?: { spielerId?: string; karte?: { farbe: string; wert: string } }) => {
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
         .then(state => {
-          const gewinnerSpieler = state.spieler.find((s: { id: string }) => s.id === gewinner);
-          if (gewinnerSpieler?.isBot) {
-            const text = speakStichGewonnen();
-            setSpeechBubble({ text, playerId: gewinner });
-            setTimeout(() => setSpeechBubble(null), 2500);
+          setGameState(state);
+
+          // Prüfe: Partner gefunden? (bei Sauspiel, wenn gesuchte Sau gespielt wird)
+          if (data?.karte && data?.spielerId && state.gespielteAnsage === 'sauspiel') {
+            const reaktion = checkPartnerGefunden(state, data.karte as any, data.spielerId);
+            if (reaktion) {
+              const text = speakMitspielerReaktion(reaktion);
+              setSpeechBubble({ text, playerId: reaktion.sprecherId });
+              setTimeout(() => setSpeechBubble(null), 6000);
+            }
+          }
+
+          // Prüfe: Aufforderung zum Stechen? (wenn 3 Karten im Stich)
+          if (state.aktuellerStich.karten.length === 3) {
+            const reaktion = checkAufforderungStechen(state);
+            if (reaktion) {
+              const text = speakMitspielerReaktion(reaktion);
+              setSpeechBubble({ text, playerId: reaktion.sprecherId });
+              setTimeout(() => setSpeechBubble(null), 4000); // Kürzer, da bald Stich-Ende
+            }
+          }
+        })
+        .catch(console.error);
+    };
+
+    const handleStichEnde = ({ gewinner, stichAugen }: { gewinner: string; stichAugen?: number }) => {
+      // Bot-Spruch wenn Bot gewinnt
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
+        .then(res => res.json())
+        .then(state => {
+          // Berechne Stich-Augen falls nicht übergeben
+          const augen = stichAugen ?? state.aktuellerStich.karten.reduce(
+            (sum: number, k: { karte: { wert: keyof typeof AUGEN } }) => sum + AUGEN[k.karte.wert],
+            0
+          );
+
+          // Erst prüfen: Mitspieler-Reaktion?
+          const mitspielerReaktion = checkMitspielerReaktionNachStich(state, gewinner, augen);
+          if (mitspielerReaktion) {
+            const text = speakMitspielerReaktion(mitspielerReaktion);
+            setSpeechBubble({ text, playerId: mitspielerReaktion.sprecherId });
+            setTimeout(() => setSpeechBubble(null), 6000);
+          } else {
+            // Fallback: Gewinner-Bot spricht wenn Bot gewinnt
+            const gewinnerSpieler = state.spieler.find((s: { id: string }) => s.id === gewinner);
+            if (gewinnerSpieler?.isBot) {
+              const text = speakStichGewonnen();
+              setSpeechBubble({ text, playerId: gewinner });
+              setTimeout(() => setSpeechBubble(null), 6000);
+            }
           }
         });
 
-      // Collect-Animation starten
-      setIsCollecting(true);
+      // Kurze Pause damit man alle 4 Karten sehen kann, dann Collect-Animation
+      setTimeout(() => {
+        setIsCollecting(true);
+      }, 1200);
 
       // Nach Animation: State laden und nächsten Stich triggern
       setTimeout(async () => {
         setIsCollecting(false);
 
-        const res = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+        const res = await fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`));
         const state = await res.json();
         setGameState(state);
 
         // Wenn noch im stich-ende: nächsten Stich starten
         if (state.phase === 'stich-ende') {
-          await fetch('/api/game', {
+          await fetch(apiUrl('/api/game'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'naechsterStich', roomId, playerId }),
           });
         }
-      }, 2000);
-    });
+      }, 3200);
+    };
 
-    channel.bind(EVENTS.RUNDE_ENDE, ({ ergebnis }: { ergebnis: SpielErgebnis }) => {
-      console.log('[Client] RUNDE_ENDE Event empfangen:', ergebnis);
-      setErgebnis(ergebnis);
-    });
+    const handleRundeEnde = ({ ergebnis: e }: { ergebnis: SpielErgebnis }) => {
+      console.log('[Client] RUNDE_ENDE Event empfangen:', e);
+      setErgebnis(e);
+    };
 
-    // Bot-Events
-    channel.bind(EVENTS.BOT_ACTION, (data: { botId: string; action: string; ansage?: string; gesuchteAss?: string }) => {
-      // Sprachausgabe bei Ansagen
+    const handleBotAction = (data: { botId: string; action: string; ansage?: string; gesuchteAss?: string }) => {
       if (data.action === 'ansage' && data.ansage) {
         const text = speakAnsage(data.ansage, data.gesuchteAss);
         setSpeechBubble({ text, playerId: data.botId });
-        setTimeout(() => setSpeechBubble(null), 2500);
+        setTimeout(() => setSpeechBubble(null), 6000);
       }
 
-      // State neu laden nach Bot-Aktion
-      fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`)
+      fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
         .then(state => setGameState(state))
         .catch(console.error);
-    });
+    };
+
+    // Voice Message Handler (Push-to-Talk)
+    const handleVoiceMessage = (data: { playerId: string; playerName: string; audioBase64: string; mimeType: string }) => {
+      // Eigene Nachrichten nicht abspielen
+      if (data.playerId === playerId) return;
+
+      // Sprechblase anzeigen
+      setSpeechBubble({ text: '🎤', playerId: data.playerId });
+
+      // Audio abspielen
+      playBase64Audio(data.audioBase64, data.mimeType)
+        .catch(err => console.warn('[Voice] Playback error:', err))
+        .finally(() => {
+          // Sprechblase nach Audio-Ende ausblenden
+          setTimeout(() => setSpeechBubble(null), 500);
+        });
+    };
+
+    // Events registrieren
+    socket.on(EVENTS.PLAYER_JOINED, handlePlayerJoined);
+    socket.on(EVENTS.PLAYER_LEFT, handlePlayerLeft);
+    socket.on(EVENTS.PLAYER_READY, handlePlayerReady);
+    socket.on(EVENTS.ROOM_UPDATED, handleRoomUpdated);
+    socket.on(EVENTS.GAME_STARTING, handleGameStarting);
+    socket.on(EVENTS.GAME_STATE, handleGameState);
+    socket.on(EVENTS.LEGEN, handleLegen);
+    socket.on(EVENTS.ANSAGE, handleAnsage);
+    socket.on(EVENTS.KARTE_GESPIELT, handleKarteGespielt);
+    socket.on(EVENTS.STICH_ENDE, handleStichEnde);
+    socket.on(EVENTS.RUNDE_ENDE, handleRundeEnde);
+    socket.on(EVENTS.BOT_ACTION, handleBotAction);
+    socket.on(EVENTS.VOICE_MESSAGE, handleVoiceMessage);
 
     return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(roomChannel(roomId));
+      socket.off(EVENTS.PLAYER_JOINED, handlePlayerJoined);
+      socket.off(EVENTS.PLAYER_LEFT, handlePlayerLeft);
+      socket.off(EVENTS.PLAYER_READY, handlePlayerReady);
+      socket.off(EVENTS.ROOM_UPDATED, handleRoomUpdated);
+      socket.off(EVENTS.GAME_STARTING, handleGameStarting);
+      socket.off(EVENTS.GAME_STATE, handleGameState);
+      socket.off(EVENTS.LEGEN, handleLegen);
+      socket.off(EVENTS.ANSAGE, handleAnsage);
+      socket.off(EVENTS.KARTE_GESPIELT, handleKarteGespielt);
+      socket.off(EVENTS.STICH_ENDE, handleStichEnde);
+      socket.off(EVENTS.RUNDE_ENDE, handleRundeEnde);
+      socket.off(EVENTS.BOT_ACTION, handleBotAction);
+      socket.off(EVENTS.VOICE_MESSAGE, handleVoiceMessage);
+      unsubscribeFromChannel(socket, channel);
     };
-  }, [playerId, playerName, roomId, setGameState, setWaitingRoom, setCurrentRoom, speakAnsage, speakStichGewonnen]);
+  }, [playerId, playerName, roomId, setGameState, setWaitingRoom, setCurrentRoom, speakAnsage, speakStichGewonnen, speakMitspielerReaktion]);
 
   // Raum verlassen
   const leaveRoom = async () => {
-    await fetch('/api/rooms', {
+    await fetch(apiUrl('/api/rooms'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'leave', roomId, playerId }),
@@ -243,7 +387,7 @@ export default function GamePage() {
 
   // Raum-State neu laden
   const reloadRoomState = async () => {
-    const res = await fetch(`/api/rooms?roomId=${roomId}`);
+    const res = await fetch(apiUrl(`/api/rooms?roomId=${roomId}`));
     if (res.ok) {
       const room = await res.json();
       setWaitingRoom(room);
@@ -253,7 +397,7 @@ export default function GamePage() {
 
   // Game-State neu laden
   const reloadGameState = async () => {
-    const res = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+    const res = await fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`));
     if (res.ok) {
       const state = await res.json();
       setGameState(state);
@@ -264,7 +408,7 @@ export default function GamePage() {
   const toggleReady = async () => {
     const newReady = !isReady;
     setIsReady(newReady);
-    await fetch('/api/rooms', {
+    await fetch(apiUrl('/api/rooms'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ready', roomId, playerId, ready: newReady }),
@@ -274,7 +418,7 @@ export default function GamePage() {
 
   // Bots hinzufügen
   const addBots = async () => {
-    await fetch('/api/rooms', {
+    await fetch(apiUrl('/api/rooms'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'addBots', roomId }),
@@ -282,9 +426,52 @@ export default function GamePage() {
     await reloadRoomState();
   };
 
+  // Raum löschen (nur Ersteller)
+  const deleteRoom = async () => {
+    if (!confirm('Raum wirklich löschen?')) return;
+
+    try {
+      await fetch(apiUrl('/api/rooms'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', roomId, playerId }),
+      });
+      router.push('/lobby');
+    } catch (e) {
+      console.error('Löschen fehlgeschlagen:', e);
+    }
+  };
+
+  // Einladungslink teilen/kopieren
+  const shareInviteLink = async () => {
+    const url = window.location.href;
+    const title = waitingRoom?.name || 'Schafkopf';
+    const text = `Komm zum Schafkopf-Tisch "${title}"!`;
+
+    // Web Share API (Mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (e) {
+        // User cancelled or error - fall through to clipboard
+      }
+    }
+
+    // Fallback: Clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (e) {
+      // Fallback: Prompt
+      prompt('Link kopieren:', url);
+    }
+  };
+
   // Spiel starten
   const startGame = async () => {
-    fetch('/api/rooms', {
+    fetch(apiUrl('/api/rooms'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'start', roomId }),
@@ -296,7 +483,7 @@ export default function GamePage() {
     if (isLoading) return;
     setIsLoading(true);
     ensureAudioReady();
-    fetch('/api/game', {
+    fetch(apiUrl('/api/game'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'legen', roomId, playerId, willLegen }),
@@ -311,7 +498,7 @@ export default function GamePage() {
     if (isLoading) return;
     setIsLoading(true);
     ensureAudioReady();
-    fetch('/api/game', {
+    fetch(apiUrl('/api/game'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ansage', roomId, playerId, ansage, gesuchteAss }),
@@ -326,7 +513,7 @@ export default function GamePage() {
     ensureAudioReady();
     setSelectedCard(null);
     setPreSelectedCard(null);
-    fetch('/api/game', {
+    fetch(apiUrl('/api/game'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'spielzug', roomId, playerId, karteId }),
@@ -350,12 +537,16 @@ export default function GamePage() {
     }
   }, [gameState, playerId, preSelectedCard, handleCardPlay]);
 
-  // Vorauswahl zurücksetzen bei neuem Stich
+  // Vorauswahl zurücksetzen nur wenn Karte nicht mehr auf der Hand ist
+  // (ermöglicht Premove auch beim Ausspielen)
   useEffect(() => {
-    if (gameState?.aktuellerStich.karten.length === 0) {
+    if (!gameState || !preSelectedCard) return;
+    const myIndex = gameState.spieler.findIndex(s => s.id === playerId);
+    const mySpieler = gameState.spieler[myIndex];
+    if (mySpieler && !mySpieler.hand.some(k => k.id === preSelectedCard)) {
       setPreSelectedCard(null);
     }
-  }, [gameState?.aktuellerStich.karten.length]);
+  }, [gameState, playerId, preSelectedCard]);
 
   // Neue Runde
   const handleNeueRunde = async () => {
@@ -364,9 +555,11 @@ export default function GamePage() {
     setIsCollecting(false);
     setSelectedCard(null);
     setPreSelectedCard(null);
+    // Stich-Historie für Mitspieler-Reaktionen zurücksetzen
+    resetStichHistorie();
 
     try {
-      const res = await fetch('/api/game', {
+      const res = await fetch(apiUrl('/api/game'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'neueRunde', roomId, playerId }),
@@ -375,7 +568,7 @@ export default function GamePage() {
       if (res.ok) {
         console.log('[Client] Neue Runde API erfolgreich');
         // State direkt laden falls Pusher-Event nicht kommt
-        const stateRes = await fetch(`/api/game?roomId=${roomId}&playerId=${playerId}`);
+        const stateRes = await fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`));
         const newState = await stateRes.json();
         console.log('[Client] Neuer State geladen:', newState.phase);
         setGameState(newState);
@@ -395,6 +588,22 @@ export default function GamePage() {
     );
   }
 
+  // Raum existiert nicht mehr
+  if (roomNotFound) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="text-xl text-red-400">Spiel nicht gefunden</div>
+        <p className="text-gray-400">Der Raum existiert nicht mehr.</p>
+        <button
+          onClick={() => router.push('/lobby')}
+          className="btn btn-primary"
+        >
+          Zurück zur Lobby
+        </button>
+      </div>
+    );
+  }
+
   // Warte-Lobby anzeigen wenn Spiel noch nicht gestartet
   if (!gameState && waitingRoom) {
     const myPlayer = waitingRoom.spieler.find(s => s.id === playerId);
@@ -407,9 +616,16 @@ export default function GamePage() {
         <div className="max-w-lg mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-amber-400">{waitingRoom.name}</h1>
-            <button onClick={leaveRoom} className="btn btn-secondary text-sm">
-              Verlassen
-            </button>
+            <div className="flex gap-2">
+              {isCreator && (
+                <button onClick={deleteRoom} className="btn text-sm bg-red-800 hover:bg-red-700 text-white">
+                  🗑️
+                </button>
+              )}
+              <button onClick={leaveRoom} className="btn btn-secondary text-sm">
+                Verlassen
+              </button>
+            </div>
           </div>
 
           <div className="bg-gray-800 rounded-xl p-4 space-y-4">
@@ -472,6 +688,18 @@ export default function GamePage() {
                 Mit Bots auffüllen
               </button>
             )}
+
+            {/* Einladungs-Button */}
+            <button
+              onClick={shareInviteLink}
+              className="btn btn-secondary w-full flex items-center justify-center gap-2"
+            >
+              {linkCopied ? (
+                <>✓ Link kopiert!</>
+              ) : (
+                <>📤 Einladen</>
+              )}
+            </button>
 
             {isCreator && canStart && (
               <button onClick={startGame} className="btn btn-primary w-full py-3">
@@ -569,6 +797,7 @@ export default function GamePage() {
             spieler={gameState.spieler}
             spielmacherId={gameState.spielmacher!}
             partnerId={gameState.partner}
+            playerId={playerId}
             onNeueRunde={handleNeueRunde}
             onBeenden={leaveRoom}
           />
@@ -593,6 +822,13 @@ export default function GamePage() {
         >
           Verlassen
         </button>
+
+        {/* Push-to-Talk Button */}
+        <VoiceButton
+          roomId={roomId}
+          playerId={playerId}
+          playerName={playerName || 'Spieler'}
+        />
       </main>
     );
   }

@@ -17,15 +17,35 @@ export type Spielart =
   | 'farbsolo-gras'
   | 'farbsolo-herz'
   | 'farbsolo-schellen'
+  | 'wenz-tout'
+  | 'geier-tout'
+  | 'farbsolo-eichel-tout'
+  | 'farbsolo-gras-tout'
+  | 'farbsolo-herz-tout'
+  | 'farbsolo-schellen-tout'
   | 'hochzeit';
 
 export type Ansage = 'weiter' | Spielart;
+
+// Hilfsfunktionen für Tout
+export function istTout(spielart: Spielart | null): boolean {
+  return spielart?.endsWith('-tout') ?? false;
+}
+
+export function getBaseSolo(spielart: Spielart): Spielart {
+  // Entfernt -tout Suffix falls vorhanden
+  if (spielart.endsWith('-tout')) {
+    return spielart.replace('-tout', '') as Spielart;
+  }
+  return spielart;
+}
 
 export interface Spieler {
   id: string;
   name: string;
   isBot: boolean;
   hand: Karte[];
+  anfangsHand: Karte[]; // Original-Hand beim Austeilen (für Laufende-Berechnung)
   stiche: Karte[][];
   guthaben: number; // in Cent
   position: 0 | 1 | 2 | 3;
@@ -71,6 +91,7 @@ export interface SpielState {
   // Spielverlauf
   aktuellerSpieler: number; // Position 0-3
   aktuellerStich: Stich;
+  letzterStich: Stich | null; // Für "Letzter Stich" Anzeige
   stichNummer: number;
 
   // Ergebnis
@@ -90,11 +111,16 @@ export interface Raum {
 
 export interface SpielErgebnis {
   gewinner: 'spielmacher' | 'gegner';
+  augenSpielmacher: number; // Augen des Spielmacher-Teams
+  augenGegner: number; // Augen der Gegner
   schneider: boolean;
   schwarz: boolean;
+  tout: boolean; // War es ein Tout-Spiel?
+  toutGewonnen: boolean; // Hat der Tout-Spieler alle Stiche gemacht?
   laufende: number;
   grundTarif: number; // 10 oder 20 Cent
-  kontraMultiplikator: number; // 1, 2 (Du), 4 (Re)
+  kontraMultiplikator: number; // 1, 2 (Kontra), 4 (Re)
+  legenMultiplikator: number; // 2^n wobei n = Anzahl Leger
   gesamtWert: number; // Endwert in Cent
   auszahlungen: { spielerId: string; betrag: number }[];
 }

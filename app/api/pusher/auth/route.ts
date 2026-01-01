@@ -1,38 +1,13 @@
-// Pusher Auth Endpoint für private/presence Channels
+// Socket.IO Auth Endpoint (Kompatibilitäts-Stub)
+// Mit Socket.IO wird die Auth direkt im Socket-Server gehandhabt
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPusherServer } from '@/lib/pusher';
 
 export async function POST(request: NextRequest) {
-  try {
-    const pusher = getPusherServer();
-
-    const formData = await request.formData();
-    const socketId = formData.get('socket_id') as string;
-    const channelName = formData.get('channel_name') as string;
-
-    // User-Info aus FormData-Params (von Pusher-Client gesendet)
-    const playerId = formData.get('playerId') as string || 'anonymous-' + Date.now();
-    const playerName = formData.get('playerName') as string || 'Gast';
-
-    if (channelName.startsWith('presence-')) {
-      // Presence Channel - mit User-Daten
-      const presenceData = {
-        user_id: playerId,
-        user_info: {
-          name: playerName,
-        },
-      };
-
-      const auth = pusher.authorizeChannel(socketId, channelName, presenceData);
-      return NextResponse.json(auth);
-    } else {
-      // Private Channel
-      const auth = pusher.authorizeChannel(socketId, channelName);
-      return NextResponse.json(auth);
-    }
-  } catch (error) {
-    console.error('Pusher auth error:', error);
-    return NextResponse.json({ error: 'Auth failed' }, { status: 500 });
-  }
+  // Socket.IO benötigt keinen separaten Auth-Endpoint
+  // Dieser Endpoint existiert nur für Abwärtskompatibilität
+  return NextResponse.json({
+    success: true,
+    message: 'Socket.IO auth handled by socket server',
+  });
 }

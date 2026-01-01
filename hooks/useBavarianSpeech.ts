@@ -14,7 +14,9 @@ import {
   SPIEL_VERLOREN,
   DU_GESAGT,
   RE_GESAGT,
+  BavarianPhrase,
 } from '@/lib/bavarian-speech';
+import { MitspielerReaktion } from '@/lib/mitspieler-reaktionen';
 
 export function useBavarianSpeech() {
   const initialized = useRef(false);
@@ -79,6 +81,18 @@ export function useBavarianSpeech() {
     return phrase.text;
   }, []);
 
+  // Mitspieler-Reaktion abspielen
+  const speakMitspielerReaktion = useCallback((reaktion: MitspielerReaktion) => {
+    speak(reaktion.phrase.speech);
+    return reaktion.phrase.text;
+  }, []);
+
+  // Beliebigen Spruch abspielen
+  const speakPhrase = useCallback((phrase: BavarianPhrase) => {
+    speak(phrase.speech);
+    return phrase.text;
+  }, []);
+
   return {
     speakAnsage,
     speakStichGewonnen,
@@ -88,6 +102,8 @@ export function useBavarianSpeech() {
     speakSpielVerloren,
     speakDu,
     speakRe,
+    speakMitspielerReaktion,
+    speakPhrase,
     ensureAudioReady, // Für Mobile-Audio-Unlock bei User-Interaktion
   };
 }

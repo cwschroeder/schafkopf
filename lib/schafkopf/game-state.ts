@@ -1,6 +1,6 @@
 // Spielzustand-Management
 
-import { SpielState, Spieler, Spielart, Ansage, Karte, Stich, Farbe, SpielErgebnis } from './types';
+import { SpielState, Spieler, Spielart, Ansage, Karte, Stich, Farbe, SpielErgebnis, istTout } from './types';
 import { austeilen, zaehleAugen } from './cards';
 import { istTrumpf, stichGewinner, spielbareKarten, sortiereHand } from './rules';
 import { berechneErgebnis } from './scoring';
@@ -92,6 +92,7 @@ export function erstelleSpiel(
     name: s.name,
     isBot: s.isBot,
     hand: haende[i],
+    anfangsHand: [...haende[i]], // Kopie der Original-Hand für Laufende-Berechnung
     stiche: [],
     guthaben: 0,
     position: i as 0 | 1 | 2 | 3,
@@ -115,6 +116,7 @@ export function erstelleSpiel(
     re: false,
     aktuellerSpieler: ersterSpieler, // Rechts vom Geber kommt raus
     aktuellerStich: { karten: [], gewinner: null },
+    letzterStich: null,
     stichNummer: 0,
     augenSpielmacher: 0,
     augenGegner: 0,
@@ -190,6 +192,12 @@ export function verarbeiteAnsage(
       'farbsolo-gras': 3,
       'farbsolo-herz': 3,
       'farbsolo-schellen': 3,
+      'wenz-tout': 4,
+      'geier-tout': 4,
+      'farbsolo-eichel-tout': 5,
+      'farbsolo-gras-tout': 5,
+      'farbsolo-herz-tout': 5,
+      'farbsolo-schellen-tout': 5,
     };
 
     const neueWertigkeit = spielWertigkeit[ansage];
@@ -308,6 +316,20 @@ export function verarbeiteSpielzug(
     state.phase = 'stich-ende';
     state.stichNummer++;
 
+    // Tout-Check: Wenn Gegner einen Stich macht, ist Tout verloren
+    if (istTout(state.gespielteAnsage)) {
+      const gewinnerIstSpielmacher = gewinner.id === state.spielmacher;
+      const gewinnerIstPartner = gewinner.id === state.partner; // Bei Solo immer null
+      const gewinnerIstImTeam = gewinnerIstSpielmacher || gewinnerIstPartner;
+
+      if (!gewinnerIstImTeam) {
+        // Gegner hat einen Stich gemacht - Tout verloren, Spiel sofort beenden
+        console.log(`[Tout] Gegner ${gewinner.name} hat einen Stich gemacht - Tout verloren!`);
+        state.phase = 'runde-ende';
+        return state;
+      }
+    }
+
     // Alle 6 Stiche gespielt?
     if (state.stichNummer >= 6) {
       state.phase = 'runde-ende';
@@ -332,6 +354,8 @@ export function naechsterStich(state: SpielState): SpielState {
     throw new Error('Nicht im Stich-Ende');
   }
 
+  // Letzten Stich speichern bevor er geleert wird
+  state.letzterStich = { ...state.aktuellerStich };
   state.aktuellerStich = { karten: [], gewinner: null };
   state.phase = 'spielen';
 
