@@ -153,13 +153,22 @@ export function darfKarteSpielen(
   if (stich.karten.length === 0) {
     // Bei Sauspiel: Man darf nicht die gesuchte Farbe anspielen, wenn man die Sau selbst hat
     // (außer man hat 4 oder mehr Karten dieser Farbe)
-    if (spielart === 'sauspiel' && gesuchteAss && karte.farbe === gesuchteAss) {
+    // WICHTIG: Trümpfe der Farbe (Ober/Unter) sind davon ausgenommen!
+    if (spielart === 'sauspiel' && gesuchteAss && karte.farbe === gesuchteAss && !istTrumpf(karte, spielart)) {
       const hatSau = hand.some(k => k.farbe === gesuchteAss && k.wert === 'ass');
       if (hatSau) {
         const kartenDerFarbe = hand.filter(k => k.farbe === gesuchteAss && !istTrumpf(k, spielart));
-        // Davon eine sein darf, wenn man nur noch die Sau hat oder 4+ Karten
+        // "Davonlaufen" erlaubt bei 4+ Karten der Farbe
         if (kartenDerFarbe.length >= 4) {
-          return true; // "Davonlaufen" erlaubt
+          return true;
+        }
+        // WICHTIG: Wenn man NUR noch Karten der Sau-Farbe hat (kein Trumpf, keine andere Farbe),
+        // dann MUSS man sie spielen dürfen
+        const andereKarten = hand.filter(k =>
+          (k.farbe !== gesuchteAss || istTrumpf(k, spielart)) // Andere Farbe ODER Trumpf
+        );
+        if (andereKarten.length === 0) {
+          return true; // Keine andere Wahl
         }
         // Ansonsten darf man die Farbe nicht anspielen
         return false;

@@ -622,9 +622,15 @@ export default function GamePage() {
                   🗑️
                 </button>
               )}
-              <button onClick={leaveRoom} className="btn btn-secondary text-sm">
-                Verlassen
-              </button>
+              {myPlayer ? (
+                <button onClick={leaveRoom} className="btn btn-secondary text-sm">
+                  Verlassen
+                </button>
+              ) : (
+                <button onClick={() => router.push('/lobby')} className="btn btn-secondary text-sm">
+                  Zur Lobby
+                </button>
+              )}
             </div>
           </div>
 
@@ -668,6 +674,49 @@ export default function GamePage() {
           </div>
 
           <div className="flex flex-col gap-2">
+            {/* Beitreten-Button für Besucher die noch nicht im Raum sind */}
+            {!myPlayer && waitingRoom.spieler.length < 4 && (
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(apiUrl('/api/rooms'), {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        action: 'join',
+                        roomId,
+                        playerId,
+                        playerName,
+                      }),
+                    });
+                    if (res.ok) {
+                      const { room } = await res.json();
+                      setWaitingRoom(room);
+                      setCurrentRoom(room);
+                    }
+                  } catch (e) {
+                    console.error('Beitreten fehlgeschlagen:', e);
+                  }
+                }}
+                className="btn btn-primary w-full py-3"
+              >
+                Beitreten
+              </button>
+            )}
+
+            {/* Raum ist voll - Besucher kann nicht beitreten */}
+            {!myPlayer && waitingRoom.spieler.length >= 4 && (
+              <div className="bg-red-900/50 border border-red-600 rounded-lg p-4 text-center">
+                <p className="text-red-300">Dieser Tisch ist bereits voll</p>
+                <button
+                  onClick={() => router.push('/lobby')}
+                  className="btn btn-secondary mt-2"
+                >
+                  Zur Lobby
+                </button>
+              </div>
+            )}
+
             {myPlayer && !myPlayer.ready && (
               <button onClick={toggleReady} className="btn btn-primary w-full py-3">
                 Bereit
