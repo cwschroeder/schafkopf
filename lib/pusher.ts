@@ -45,6 +45,29 @@ let socketInstance: Socket | null = null;
 let currentPlayerId: string | null = null;
 let currentPlayerName: string | null = null;
 
+// Connection Status für UI-Feedback
+export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
+let connectionStatus: ConnectionStatus = 'disconnected';
+let connectionListeners: ((status: ConnectionStatus) => void)[] = [];
+
+function setConnectionStatus(status: ConnectionStatus) {
+  connectionStatus = status;
+  connectionListeners.forEach(listener => listener(status));
+}
+
+export function getConnectionStatus(): ConnectionStatus {
+  return connectionStatus;
+}
+
+export function onConnectionChange(callback: (status: ConnectionStatus) => void): () => void {
+  connectionListeners.push(callback);
+  // Sofort aktuellen Status mitteilen
+  callback(connectionStatus);
+  return () => {
+    connectionListeners = connectionListeners.filter(l => l !== callback);
+  };
+}
+
 export function getPusherClient(playerId?: string, playerName?: string): Socket | null {
   if (typeof window === 'undefined') {
     return null;
@@ -83,14 +106,27 @@ export function getPusherClient(playerId?: string, playerName?: string): Socket 
 
     socketInstance.on('connect', () => {
       console.log('[Socket] Verbunden:', socketInstance?.id);
+      setConnectionStatus('connected');
     });
 
-    socketInstance.on('disconnect', () => {
-      console.log('[Socket] Getrennt');
+    socketInstance.on('disconnect', (reason) => {
+      console.log('[Socket] Getrennt:', reason);
+      setConnectionStatus('disconnected');
+    });
+
+    socketInstance.on('reconnect_attempt', (attempt) => {
+      console.log('[Socket] Reconnect-Versuch:', attempt);
+      setConnectionStatus('reconnecting');
+    });
+
+    socketInstance.on('reconnect', () => {
+      console.log('[Socket] Reconnected');
+      setConnectionStatus('connected');
     });
 
     socketInstance.on('connect_error', (err) => {
       console.warn('[Socket] Verbindungsfehler:', err.message);
+      setConnectionStatus('disconnected');
     });
   }
 

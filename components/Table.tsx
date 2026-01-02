@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SpielState } from '@/lib/schafkopf/types';
 import { spielbareKarten } from '@/lib/schafkopf/rules';
 import { apiUrl } from '@/lib/api';
@@ -34,6 +34,17 @@ export default function Table({
   speechBubble = null,
 }: TableProps) {
   const [showLetzterStich, setShowLetzterStich] = useState(false);
+  const [infoExpanded, setInfoExpanded] = useState(true);
+
+  // Auto-Minimize nach 3 Sekunden wenn expanded
+  useEffect(() => {
+    if (infoExpanded && state.phase === 'spielen') {
+      const timer = setTimeout(() => {
+        setInfoExpanded(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [infoExpanded, state.phase]);
 
   // Meine Position finden
   const myIndex = state.spieler.findIndex(s => s.id === myPlayerId);
@@ -225,42 +236,66 @@ export default function Table({
         />
       </div>
 
-      {/* Spielinfo Overlay (dekoriert) */}
+      {/* Spielinfo Overlay - kompaktierbar */}
       <div
-        className="absolute top-6 sm:top-10 left-6 sm:left-10 rounded-lg px-3 py-2 text-xs sm:text-sm"
+        className="absolute top-4 sm:top-6 left-2 sm:left-6 transition-all duration-300 cursor-pointer"
+        onClick={() => setInfoExpanded(!infoExpanded)}
         style={{
           background: 'linear-gradient(135deg, rgba(62,39,35,0.95) 0%, rgba(78,52,46,0.95) 100%)',
           border: '1px solid rgba(139,90,43,0.5)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          borderRadius: infoExpanded ? '0.5rem' : '9999px',
+          padding: infoExpanded ? '0.5rem 0.75rem' : '0.35rem 0.6rem',
+          minWidth: infoExpanded ? 'auto' : 'auto',
         }}
       >
-        {state.gespielteAnsage ? (
-          <>
-            <div className="font-semibold text-amber-200">
-              {formatAnsage(state.gespielteAnsage, state.gesuchteAss)}
-            </div>
-            <div className="text-gray-400 text-xs">
-              von {state.spieler.find(s => s.id === state.spielmacher)?.name || 'Unbekannt'}
-            </div>
-          </>
+        {infoExpanded ? (
+          // Expandierter Zustand
+          <div className="text-xs sm:text-sm">
+            {state.gespielteAnsage ? (
+              <>
+                <div className="font-semibold text-amber-200">
+                  {formatAnsage(state.gespielteAnsage, state.gesuchteAss)}
+                </div>
+                <div className="text-gray-400 text-xs">
+                  von {state.spieler.find(s => s.id === state.spielmacher)?.name || 'Unbekannt'}
+                </div>
+              </>
+            ) : (
+              <div className="font-semibold text-amber-200">Ansage...</div>
+            )}
+            <div className="text-gray-300 mt-1">Stich {state.stichNummer + 1}/6</div>
+            {state.kontra && <div className="text-red-400 font-bold">Du!</div>}
+            {state.re && <div className="text-amber-400 font-bold">Re!</div>}
+            {state.letzterStich && state.letzterStich.karten.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLetzterStich(true);
+                }}
+                className="mt-2 text-xs px-2 py-1 rounded transition-all hover:scale-105 min-h-[32px]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,90,43,0.8) 0%, rgba(62,39,35,0.8) 100%)',
+                  border: '1px solid rgba(212,175,55,0.5)',
+                  color: '#e5d3b3',
+                }}
+              >
+                Letzter Stich
+              </button>
+            )}
+            <div className="text-[10px] text-gray-500 mt-1 text-center">▼ tippen zum minimieren</div>
+          </div>
         ) : (
-          <div className="font-semibold text-amber-200">Ansage...</div>
-        )}
-        <div className="text-gray-300 mt-1">Stich {state.stichNummer + 1}/6</div>
-        {state.kontra && <div className="text-red-400 font-bold">Du!</div>}
-        {state.re && <div className="text-amber-400 font-bold">Re!</div>}
-        {state.letzterStich && state.letzterStich.karten.length > 0 && (
-          <button
-            onClick={() => setShowLetzterStich(true)}
-            className="mt-2 text-xs px-2 py-1 rounded transition-all hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, rgba(139,90,43,0.8) 0%, rgba(62,39,35,0.8) 100%)',
-              border: '1px solid rgba(212,175,55,0.5)',
-              color: '#e5d3b3',
-            }}
-          >
-            Letzter Stich
-          </button>
+          // Minimierter Zustand - kompakte Chips
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs">
+            <span className="font-bold text-amber-200">
+              {state.gespielteAnsage ? formatAnsageKurz(state.gespielteAnsage, state.gesuchteAss) : '?'}
+            </span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-300">{state.stichNummer + 1}/6</span>
+            {state.kontra && <span className="text-red-400 font-bold">Du</span>}
+            {state.re && <span className="text-amber-400 font-bold">Re</span>}
+          </div>
         )}
       </div>
 
@@ -434,8 +469,9 @@ function formatAnsage(ansage: string, gesuchteAss?: string | null): string {
   }
 
   if (ansage.startsWith('farbsolo-')) {
-    const farbe = ansage.replace('farbsolo-', '');
-    return `${FARBEN_NAMEN[farbe] || farbe}-Solo`;
+    const farbe = ansage.replace('farbsolo-', '').replace('-tout', '');
+    const isTout = ansage.includes('-tout');
+    return `${FARBEN_NAMEN[farbe] || farbe}-Solo${isTout ? ' Tout' : ''}`;
   }
 
   const ANSAGEN_NAMEN: Record<string, string> = {
@@ -443,9 +479,42 @@ function formatAnsage(ansage: string, gesuchteAss?: string | null): string {
     wenz: 'Wenz',
     geier: 'Geier',
     hochzeit: 'Hochzeit',
+    'wenz-tout': 'Wenz Tout',
+    'geier-tout': 'Geier Tout',
   };
 
   return ANSAGEN_NAMEN[ansage] || ansage.charAt(0).toUpperCase() + ansage.slice(1);
+}
+
+// Kurze Ansage-Darstellung für minimierte Ansicht
+function formatAnsageKurz(ansage: string, gesuchteAss?: string | null): string {
+  const FARBEN_KURZ: Record<string, string> = {
+    eichel: 'E',
+    gras: 'G',
+    herz: 'H',
+    schellen: 'S',
+  };
+
+  if (ansage === 'sauspiel' && gesuchteAss) {
+    return `🐷${FARBEN_KURZ[gesuchteAss] || ''}`;
+  }
+
+  if (ansage.startsWith('farbsolo-')) {
+    const parts = ansage.replace('farbsolo-', '').split('-');
+    const farbe = parts[0];
+    const isTout = parts.includes('tout');
+    return `Solo${FARBEN_KURZ[farbe] || ''}${isTout ? '!' : ''}`;
+  }
+
+  const KURZ: Record<string, string> = {
+    wenz: 'Wenz',
+    geier: 'Geier',
+    hochzeit: 'HZ',
+    'wenz-tout': 'Wenz!',
+    'geier-tout': 'Geier!',
+  };
+
+  return KURZ[ansage] || ansage.slice(0, 4);
 }
 
 // Bayerische Sprechblase

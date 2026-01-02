@@ -102,13 +102,29 @@ export function trumpfStaerke(karte: Karte, spielart: Spielart): number {
 
 /**
  * Gibt die Stärke einer Nicht-Trumpf-Karte innerhalb ihrer Farbe zurück
+ * Bei Geier: Unter sind Farbkarten (Ass > König > Unter > 10 > 9)
+ * Bei Wenz: Ober sind Farbkarten (Ass > König > Ober > 10 > 9)
  */
-export function farbStaerke(karte: Karte): number {
-  // Ass=5, König=4, 10=3, 9=2, 8=1, 7=0
-  // Ober und Unter sind nie in der Farbstärke (sie sind Trumpf)
-  if (karte.wert === 'ober' || karte.wert === 'unter') {
-    return -1;
+export function farbStaerke(karte: Karte, spielart?: Spielart): number {
+  const basisSpielart = spielart ? getBaseSolo(spielart) : undefined;
+
+  // Bei Geier: Unter ist eine Farbkarte (zwischen König und 10)
+  if (karte.wert === 'unter') {
+    if (basisSpielart === 'geier') {
+      return 3.5; // Zwischen König (4) und 10 (3)
+    }
+    return -1; // Sonst Trumpf
   }
+
+  // Bei Wenz: Ober ist eine Farbkarte (zwischen König und 10)
+  if (karte.wert === 'ober') {
+    if (basisSpielart === 'wenz') {
+      return 3.5; // Zwischen König (4) und 10 (3)
+    }
+    return -1; // Sonst Trumpf
+  }
+
+  // Ass=5, König=4, 10=3, 9=2
   return 5 - FARB_REIHENFOLGE.indexOf(karte.wert);
 }
 
@@ -259,7 +275,7 @@ export function stichGewinner(stich: Stich, spielart: Spielart): number {
     } else if (hoechsteStaerke < 0) {
       // Noch kein Trumpf gespielt - Farbstärke zählt
       if (karte.farbe === farbe) {
-        const staerke = farbStaerke(karte);
+        const staerke = farbStaerke(karte, spielart);
         // Wir nutzen negative Werte für Nicht-Trumpf um sie von Trumpf zu unterscheiden
         // -100 bis -95 für Farbkarten (damit Trumpf immer gewinnt)
         const adjustedStaerke = -100 + staerke;
@@ -356,6 +372,6 @@ export function sortiereHand(hand: Karte[], spielart: Spielart): Karte[] {
     const farbDiff = farbOrder.indexOf(a.farbe) - farbOrder.indexOf(b.farbe);
     if (farbDiff !== 0) return farbDiff;
 
-    return farbStaerke(b) - farbStaerke(a);
+    return farbStaerke(b, spielart) - farbStaerke(a, spielart);
   });
 }

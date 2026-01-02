@@ -4,11 +4,14 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Schafkopf Online',
   description: 'Spiele Schafkopf mit Freunden oder gegen KI',
-  manifest: '/manifest.json',
+  manifest: '/schafkopf/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Schafkopf',
+  },
+  icons: {
+    apple: '/schafkopf/icons/apple-touch-icon.png',
   },
 };
 

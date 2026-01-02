@@ -2,17 +2,34 @@
   "name": "Schafkopf Online",
   "short_name": "Schafkopf",
   "description": "Spiele Schafkopf mit Freunden oder gegen KI",
-  "start_url": "/",
+  "start_url": "/schafkopf/",
+  "scope": "/schafkopf/",
+  "id": "/schafkopf/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#1a241e",
   "theme_color": "#1a241e",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/schafkopf/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/schafkopf/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/schafkopf/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "de",
+  "dir": "ltr"
 }

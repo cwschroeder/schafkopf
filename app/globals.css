@@ -3,14 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --card-width: 60px;
-  --card-height: 90px;
+  /* Adaptive Kartengröße mit clamp für optimale Mobile-Darstellung */
+  --card-width: clamp(52px, 15vw, 70px);
+  --card-height: clamp(78px, 22.5vw, 105px);
+
+  /* Touch-Target Mindestgröße */
+  --touch-target-min: 44px;
 }
 
+/* Sehr kleine Screens (iPhone SE, etc.) */
+@media (max-width: 380px) {
+  :root {
+    --card-width: clamp(48px, 14vw, 58px);
+    --card-height: clamp(72px, 21vw, 87px);
+  }
+}
+
+/* Tablet und Desktop */
 @media (min-width: 640px) {
   :root {
     --card-width: 80px;
     --card-height: 120px;
+  }
+}
+
+/* Landscape auf Mobile - kompaktere Karten */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --card-width: clamp(45px, 12vh, 60px);
+    --card-height: clamp(67px, 18vh, 90px);
   }
 }
 
@@ -412,4 +433,184 @@ html, body {
     opacity: 0.85;
     transition: transform 0.05s, opacity 0.05s;
   }
+}
+
+/* ==================== */
+/* BOTTOM SHEET STYLES  */
+/* ==================== */
+
+/* Bottom-Sheet Animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.bottom-sheet {
+  animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.bottom-sheet-backdrop {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ==================== */
+/* SWIPE INDICATOR      */
+/* ==================== */
+
+.swipe-indicator {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.swipe-indicator.active {
+  opacity: 1;
+  animation: swipeHint 0.8s ease-in-out infinite;
+}
+
+@keyframes swipeHint {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-8px);
+  }
+}
+
+/* ==================== */
+/* SAFE AREA SUPPORT    */
+/* ==================== */
+
+/* Verbesserte Safe-Area für alle fixierten Elemente */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Bottom-Sheet mit Safe-Area */
+  .bottom-sheet {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Fixierte Buttons */
+  .fixed.bottom-20,
+  .fixed.bottom-24 {
+    bottom: max(5rem, calc(5rem + env(safe-area-inset-bottom)));
+  }
+}
+
+/* Dynamic Island Support (iPhone 14 Pro+) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .fixed.top-2 {
+    top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+/* ==================== */
+/* LOADING STATES       */
+/* ==================== */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 90, 43, 0.2) 0%,
+    rgba(139, 90, 43, 0.4) 50%,
+    rgba(139, 90, 43, 0.2) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  border-top-color: #d4af37;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==================== */
+/* CARD SWIPE FEEDBACK  */
+/* ==================== */
+
+.card-swiping-up {
+  transition: transform 0.1s ease-out;
+}
+
+.card-swipe-ready {
+  box-shadow:
+    0 -4px 20px rgba(212, 175, 55, 0.6),
+    0 0 30px rgba(212, 175, 55, 0.4);
+}
+
+/* ==================== */
+/* KONFETTI (OPTIONAL)  */
+/* ==================== */
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  animation: confetti-fall 3s ease-in-out forwards;
+  pointer-events: none;
+  z-index: 100;
 }

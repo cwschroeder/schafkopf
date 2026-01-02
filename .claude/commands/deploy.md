@@ -5,137 +5,78 @@ description: Deploy Schafkopf to Hetzner VPS
 
 # Schafkopf Deployment auf Hetzner VPS
 
-## Server Details
-| Komponente | Pfad | Port |
-|------------|------|------|
-| Schafkopf | `/opt/schafkopf/` | 3000 |
-| nginx | Reverse Proxy | 443 (HTTPS) |
+Führe alle Schritte nacheinander aus um die App zu deployen.
 
-**VPN IP:** `10.243.0.8` (für SSH-Zugriff)
+## Architektur
 
-## SSH Key
-```
-/Users/cschroeder/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh
-```
+| Service | Port | Systemd |
+|---------|------|---------|
+| Next.js App | 3001 | `schafkopf` |
+| Socket.IO Server | 3002 | `schafkopf-socket` |
+| Redis | 6379 | `redis-server` |
+| Nginx | 443 | Reverse Proxy |
+
+**VPN IP:** `10.243.0.8`
+**SSH Key:** `$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh`
 
 ---
 
 ## Deployment Steps
 
-### 1. Build (Standalone)
+### 1. Build
 ```bash
 cd /Users/cschroeder/Github/schafkopf && npm run build
 ```
 
-### 2. Archive erstellen (Standalone Output)
+### 2. Archive erstellen
 ```bash
-cd /Users/cschroeder/Github/schafkopf && tar -czf /tmp/schafkopf-deploy.tar.gz .next/standalone .next/static public
+cd /Users/cschroeder/Github/schafkopf && tar -czf /tmp/schafkopf-deploy.tar.gz .next/standalone .next/static public socket-server.js
 ```
 
-### 3. Archive zum Server kopieren
+### 3. Zum Server kopieren
 ```bash
-scp -i /Users/cschroeder/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh /tmp/schafkopf-deploy.tar.gz root@10.243.0.8:/tmp/
+scp -i "$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh" /tmp/schafkopf-deploy.tar.gz root@10.243.0.8:/tmp/
 ```
 
-### 4. Auf Server: Extrahieren und Service neustarten
+### 4. Auf Server extrahieren und Services neustarten
+
+⚠️ **KRITISCH:** Next.js standalone enthält KEINEN public-Ordner!
+Der `public`-Ordner MUSS explizit nach `.next/standalone/public` kopiert werden,
+sonst fehlen Kartenbilder und Audio-Dateien!
 ```bash
-ssh -i /Users/cschroeder/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh root@10.243.0.8 'cd /opt/schafkopf && rm -rf .next public && tar -xzf /tmp/schafkopf-deploy.tar.gz && rm /tmp/schafkopf-deploy.tar.gz && cp -r .next/static .next/standalone/.next/ && systemctl restart schafkopf && sleep 2 && systemctl status schafkopf --no-pager'
+ssh -i "$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh" root@10.243.0.8 'cd /opt/schafkopf && tar -xzf /tmp/schafkopf-deploy.tar.gz 2>/dev/null && rm /tmp/schafkopf-deploy.tar.gz && cp -r .next/static .next/standalone/.next/ && rm -rf .next/standalone/public && cp -r public .next/standalone/ && systemctl restart schafkopf schafkopf-socket && sleep 2 && echo "=== Status ===" && systemctl is-active schafkopf schafkopf-socket'
+```
+
+### 5. Verify
+```bash
+ssh -i "$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh" root@10.243.0.8 'curl -s http://localhost:3002/health && echo "" && curl -s "https://mqtt.ivu-software.de/schafkopf/api/rooms" | head -c 100'
 ```
 
 ---
 
-## Erstmalige Server-Einrichtung
+## Umgebungsvariablen (Server: /opt/schafkopf/.env)
 
-### 1. Verzeichnis erstellen
 ```bash
-ssh -i ... root@10.243.0.8 'mkdir -p /opt/schafkopf'
-```
-
-### 2. .env auf Server erstellen
-```bash
-ssh -i ... root@10.243.0.8 'cat > /opt/schafkopf/.env << EOF
-# Redis
-REDIS_URL=redis://...
-
-# Pusher
-PUSHER_APP_ID=...
-PUSHER_KEY=...
-PUSHER_SECRET=...
-PUSHER_CLUSTER=eu
-NEXT_PUBLIC_PUSHER_KEY=...
-NEXT_PUBLIC_PUSHER_CLUSTER=eu
-
-# OpenAI (optional für KI-Gegner)
-OPENAI_API_KEY=...
-EOF'
-```
-
-### 3. Systemd Service erstellen
-```bash
-ssh -i ... root@10.243.0.8 'cat > /etc/systemd/system/schafkopf.service << EOF
-[Unit]
-Description=Schafkopf Online
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/schafkopf/.next/standalone
-ExecStart=/usr/bin/node server.js
-Restart=on-failure
-Environment=NODE_ENV=production
-Environment=PORT=3000
-EnvironmentFile=/opt/schafkopf/.env
-
-[Install]
-WantedBy=multi-user.target
-EOF'
-
-ssh -i ... root@10.243.0.8 'systemctl daemon-reload && systemctl enable schafkopf'
-```
-
-### 4. nginx Konfiguration
-```bash
-ssh -i ... root@10.243.0.8 'cat > /etc/nginx/sites-available/schafkopf << EOF
-server {
-    listen 80;
-    server_name schafkopf.ivu-software.de;
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name schafkopf.ivu-software.de;
-
-    ssl_certificate /etc/letsencrypt/live/schafkopf.ivu-software.de/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/schafkopf.ivu-software.de/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOF'
-
-ssh -i ... root@10.243.0.8 'ln -sf /etc/nginx/sites-available/schafkopf /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx'
+REDIS_URL=redis://127.0.0.1:6379
+SOCKET_TRIGGER_URL=http://127.0.0.1:3002/trigger
+NEXT_PUBLIC_SOCKET_URL=https://mqtt.ivu-software.de
 ```
 
 ---
 
 ## Troubleshooting
 
-### Service startet nicht
+### Logs anzeigen
 ```bash
-ssh -i ... root@10.243.0.8 'journalctl -u schafkopf -n 50 --no-pager'
+ssh -i "$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh" root@10.243.0.8 'journalctl -u schafkopf -u schafkopf-socket -n 30 --no-pager'
 ```
 
-### Port prüfen
+### Services Status
 ```bash
-ssh -i ... root@10.243.0.8 'ss -tlnp | grep 3000'
+ssh -i "$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh" root@10.243.0.8 'systemctl status schafkopf schafkopf-socket --no-pager'
+```
+
+### Redis prüfen
+```bash
+ssh -i "$HOME/Dropbox/MyData/Documents/OPENVPN_config/gitlab-nor-priv-ssh" root@10.243.0.8 'redis-cli keys "*"'
 ```

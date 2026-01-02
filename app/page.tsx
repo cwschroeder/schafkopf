@@ -48,20 +48,16 @@ export default function Home() {
           <p className="text-gray-300">Online mit Freunden spielen</p>
         </div>
 
-        {/* Karten-Deko */}
+        {/* Karten-Deko - echte bayerische Karten */}
         <div className="flex justify-center gap-2 py-4">
-          <div className="w-12 h-18 bg-white rounded-lg flex items-center justify-center text-2xl shadow-lg transform -rotate-12">
-            🌰
-          </div>
-          <div className="w-12 h-18 bg-white rounded-lg flex items-center justify-center text-2xl shadow-lg transform -rotate-4">
-            🌿
-          </div>
-          <div className="w-12 h-18 bg-white rounded-lg flex items-center justify-center text-2xl shadow-lg transform rotate-4">
-            ❤️
-          </div>
-          <div className="w-12 h-18 bg-white rounded-lg flex items-center justify-center text-2xl shadow-lg transform rotate-12">
-            🔔
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/schafkopf/cards/Eichel-11.svg" alt="Eichel Ass" className="w-12 h-auto rounded shadow-lg transform -rotate-12" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/schafkopf/cards/Gras-11.svg" alt="Gras Ass" className="w-12 h-auto rounded shadow-lg transform -rotate-4" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/schafkopf/cards/Herz-11.svg" alt="Herz Ass" className="w-12 h-auto rounded shadow-lg transform rotate-4" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/schafkopf/cards/Schellen-11.svg" alt="Schellen Ass" className="w-12 h-auto rounded shadow-lg transform rotate-12" />
         </div>
 
         {/* Name-Eingabe */}

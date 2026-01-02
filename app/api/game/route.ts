@@ -69,7 +69,11 @@ export async function POST(request: NextRequest) {
       case 'legen': {
         const { willLegen } = params as { willLegen: boolean };
 
+        const phaseBefore = state.phase;
         state = verarbeiteLegen(state, playerId, willLegen);
+        console.log(`[Legen] Spieler ${playerId} hat gelegt: ${willLegen}. Phase: ${phaseBefore} → ${state.phase}`);
+        console.log(`[Legen] LegenEntscheidungen: ${state.legenEntscheidungen.length}/4`);
+
         await saveGameState(state);
 
         // Broadcast an alle Spieler
@@ -340,12 +344,22 @@ async function processeBotAnsagen(roomId: string, state: SpielState | undefined)
       return;
     }
 
+    // Wenn Phase zu 'legen' gewechselt hat (neues Spiel nach alle weiter!)
+    if (state.phase === 'legen') {
+      console.log('[Bot] Phase ist legen - neues Spiel nach alle weiter!');
+      await processeBotLegen(roomId, state);
+      return;
+    }
+
     if (state.phase !== 'ansagen') return;
 
     const aktuellerSpieler = state.spieler[state.aktuellerAnsager];
-    console.log('[Bot] Aktueller Ansager:', aktuellerSpieler?.name, 'isBot:', aktuellerSpieler?.isBot);
+    console.log('[Bot] Aktueller Ansager:', aktuellerSpieler?.name, 'isBot:', aktuellerSpieler?.isBot, 'Position:', state.aktuellerAnsager);
 
-    if (!aktuellerSpieler?.isBot) return;
+    if (!aktuellerSpieler?.isBot) {
+      console.log('[Bot] Warte auf menschlichen Spieler:', aktuellerSpieler?.name);
+      return;
+    }
 
     // Bot "denkt" kurz
     await triggerPusher(roomChannel(roomId), EVENTS.BOT_THINKING, {

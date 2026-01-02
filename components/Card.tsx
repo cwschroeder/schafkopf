@@ -1,7 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { Karte, Farbe, Wert } from '@/lib/schafkopf/types';
+
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 // Wert zu Dateinummer Mapping (basierend auf thielepaul/Schafkopf)
 const WERT_TO_FILE_NUMBER: Record<Wert, string> = {
@@ -25,7 +26,7 @@ const FARBE_TO_FILE_PREFIX: Record<Farbe, string> = {
 function getCardImagePath(karte: Karte): string {
   const farbePrefix = FARBE_TO_FILE_PREFIX[karte.farbe];
   const wertNumber = WERT_TO_FILE_NUMBER[karte.wert];
-  return `/cards/${farbePrefix}-${wertNumber}.svg`;
+  return `${basePath}/cards/${farbePrefix}-${wertNumber}.svg`;
 }
 
 interface CardProps {
@@ -137,13 +138,11 @@ export default function Card({
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
     >
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={imagePath}
         alt={`${karte.farbe} ${karte.wert}`}
-        width={config.width}
-        height={config.height}
         className="w-full h-full object-contain"
-        priority
       />
     </div>
   );

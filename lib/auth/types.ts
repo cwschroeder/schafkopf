@@ -1,22 +1,42 @@
-// Auth Types for Schafkopf User Accounts
-
-import type { Spielart } from '../schafkopf/types';
-
 /**
- * User settings that are persisted with the account
+ * Auth Types für Schafkopf
+ * Definiert alle User-, Session- und Stats-bezogenen Interfaces
  */
+
+// OAuth Provider Info
+export interface OAuthProvider {
+  id: string; // Provider-spezifische User-ID
+  email?: string;
+  connectedAt: Date;
+}
+
+// User Account (gespeichert in Redis)
+export interface UserAccount {
+  id: string;
+  email: string;
+  name: string;
+  image?: string;
+  createdAt: Date;
+  lastLoginAt: Date;
+  providers: {
+    google?: OAuthProvider;
+    github?: OAuthProvider;
+  };
+  legacyPlayerIds: string[]; // Alte p_xxx IDs die verknüpft wurden
+  settings: UserSettings;
+}
+
+// User Einstellungen
 export interface UserSettings {
   voicePreference: 'male' | 'female';
   darkMode: boolean;
-  cardDesign: 'bavarian' | 'french';
+  cardDesign: 'bavarian' | 'french'; // Für zukünftige Erweiterung
   audioVolume: number; // 0-100
   soundEffectsEnabled: boolean;
   speechEnabled: boolean;
 }
 
-/**
- * Default settings for new users
- */
+// Default Settings für neue User
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   voicePreference: 'male',
   darkMode: false,
@@ -26,50 +46,22 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   speechEnabled: true,
 };
 
-/**
- * OAuth provider information linked to a user account
- */
-export interface UserProviders {
-  google?: string; // Google OAuth ID
-  github?: string; // GitHub OAuth ID
-}
-
-/**
- * Main user account stored in Redis
- * Key: user:{id}
- */
-export interface UserAccount {
-  id: string; // UUID
-  email: string | null;
-  name: string;
-  image: string | null;
-  createdAt: number; // Unix timestamp
-  lastLoginAt: number; // Unix timestamp
-  providers: UserProviders;
-  legacyPlayerIds: string[]; // Old p_xxx IDs linked to this account
-  settings: UserSettings;
-}
-
-/**
- * User statistics for leaderboard
- * Key: stats:user:{userId}
- */
+// User Statistiken
 export interface UserStats {
   userId: string;
-  guthaben: number; // Total balance in cents
-  spieleGesamt: number; // Total games played
-  siege: number; // Wins
-  niederlagen: number; // Losses
-  ansagenCount: Partial<Record<Spielart, number>>; // Games played per game type
-  ansagenWins: Partial<Record<Spielart, number>>; // Wins per game type
-  weeklyGuthaben: number; // Earnings this week
-  monthlyGuthaben: number; // Earnings this month
-  lastUpdated: number; // Unix timestamp
+  guthaben: number; // Aktuelles Guthaben
+  spieleGesamt: number;
+  siege: number;
+  niederlagen: number;
+  ansagenCount: Record<string, number>; // z.B. { sauspiel: 10, wenz: 5 }
+  ansagenWins: Record<string, number>; // z.B. { sauspiel: 8, wenz: 3 }
+  // Für Leaderboard-Zeiträume
+  weeklyGuthaben: number;
+  monthlyGuthaben: number;
+  lastUpdated: Date;
 }
 
-/**
- * Default stats for new users
- */
+// Default Stats für neue User
 export const DEFAULT_USER_STATS: Omit<UserStats, 'userId'> = {
   guthaben: 0,
   spieleGesamt: 0,
@@ -79,81 +71,70 @@ export const DEFAULT_USER_STATS: Omit<UserStats, 'userId'> = {
   ansagenWins: {},
   weeklyGuthaben: 0,
   monthlyGuthaben: 0,
-  lastUpdated: Date.now(),
+  lastUpdated: new Date(),
 };
 
-/**
- * Session stored in Redis
- * Key: session:{sessionToken}
- * TTL: 24 hours
- */
-export interface AuthSession {
+// Session (Auth.js Session Token)
+export interface Session {
   sessionToken: string;
   userId: string;
-  expires: number; // Unix timestamp
+  expires: Date;
 }
 
-/**
- * OAuth account link stored in Redis
- * Key: user:oauth:{provider}:{providerAccountId}
- */
-export interface OAuthAccountLink {
-  userId: string;
-  provider: string;
-  providerAccountId: string;
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: number;
-}
-
-/**
- * Game result for history tracking
- * Key: history:game:{gameId}
- * TTL: 90 days
- */
-export interface GameResult {
-  id: string;
-  roomId: string;
-  timestamp: number;
-  spielart: Spielart;
-  spielmacherId: string;
-  partnerId: string | null;
-  gewinner: 'spielmacher' | 'gegner';
-  augenSpielmacher: number;
-  augenGegner: number;
-  schneider: boolean;
-  schwarz: boolean;
-  tout: boolean;
-  gesamtWert: number;
-  players: GameResultPlayer[];
-}
-
-/**
- * Player entry in a game result
- */
-export interface GameResultPlayer {
-  odplayerId: string; // Original player ID used in game
-  oduserId?: string; // User account ID if linked
-  name: string;
-  isBot: boolean;
-  betrag: number; // Amount won/lost in cents
-}
-
-/**
- * Leaderboard entry returned from API
- */
+// Leaderboard Entry
 export interface LeaderboardEntry {
   rank: number;
   userId: string;
   name: string;
-  image: string | null;
+  image?: string;
   guthaben: number;
-  spieleGesamt: number;
   siege: number;
-  winRate: number; // 0-100
+  spieleGesamt: number;
+  winRate: number; // Berechnet: siege / spieleGesamt * 100
 }
 
-/**
- * Leaderboard period types
- */
-export type LeaderboardPeriod = 'alltime' | 'weekly' | 'monthly';
+// Game Result für History
+export interface GameResult {
+  gameId: string;
+  roomId: string;
+  timestamp: Date;
+  spielart: string;
+  spielmacher: string; // User ID oder Player ID
+  partner?: string; // Bei Sauspiel
+  spielerPartei: string[]; // User/Player IDs
+  gegnerPartei: string[]; // User/Player IDs
+  punkte: number; // Punkte der Spielerpartei
+  gewonnen: boolean; // Spielerpartei gewonnen?
+  schneider: boolean;
+  schwarz: boolean;
+  laufende: number;
+  guthabenAenderung: number; // +/- Guthaben pro Spieler
+}
+
+// Öffentliches Profil (ohne Email)
+export interface PublicProfile {
+  id: string;
+  name: string;
+  image?: string;
+  stats: {
+    guthaben: number;
+    spieleGesamt: number;
+    siege: number;
+    winRate: number;
+    lieblingsAnsage?: string;
+  };
+  memberSince: Date;
+}
+
+// Auth.js Account Type (für OAuth linking)
+export interface AuthAccount {
+  userId: string;
+  type: 'oauth';
+  provider: 'google' | 'github';
+  providerAccountId: string;
+  access_token?: string;
+  token_type?: string;
+  scope?: string;
+  expires_at?: number;
+  id_token?: string;
+}

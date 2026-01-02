@@ -234,6 +234,8 @@ export function verarbeiteAnsage(
       }
     } else {
       // Alle haben "weiter" gesagt - neu mischen
+      console.log('[Ansage] ALLE HABEN WEITER GESAGT - Neu mischen!');
+      console.log('[Ansage] Spieler:', state.spieler.map(s => `${s.name}: ${s.ansage}`).join(', '));
       return erstelleSpiel(state.id, state.spieler.map(s => ({
         id: s.id,
         name: s.name,

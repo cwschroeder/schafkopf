@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { Karte } from '@/lib/schafkopf/types';
 import Card from './Card';
+import { hapticTap, hapticMedium } from '@/lib/haptics';
 
 interface HandProps {
   karten: Karte[];
@@ -15,6 +16,9 @@ interface HandProps {
   isCurrentPlayer?: boolean;
   hidden?: boolean;
 }
+
+// Swipe-Threshold in Pixeln
+const SWIPE_THRESHOLD = 40;
 
 // Timeout für Double-Tap Detection (ms)
 const DOUBLE_TAP_DELAY = 300;
@@ -33,6 +37,57 @@ export default function Hand({
   // Für Double-Tap Detection pro Karte
   const lastTapRef = useRef<{ [karteId: string]: number }>({});
 
+  // Swipe-State pro Karte
+  const [swipeState, setSwipeState] = useState<{
+    karteId: string | null;
+    startY: number;
+    currentY: number;
+    isSwiping: boolean;
+  }>({ karteId: null, startY: 0, currentY: 0, isSwiping: false });
+
+  // Touch-Start Handler für Swipe
+  const handleTouchStart = useCallback((e: React.TouchEvent, karte: Karte) => {
+    if (hidden || !isCurrentPlayer) return;
+
+    const touch = e.touches[0];
+    setSwipeState({
+      karteId: karte.id,
+      startY: touch.clientY,
+      currentY: touch.clientY,
+      isSwiping: true,
+    });
+  }, [hidden, isCurrentPlayer]);
+
+  // Touch-Move Handler für Swipe
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!swipeState.isSwiping || !swipeState.karteId) return;
+
+    const touch = e.touches[0];
+    setSwipeState(prev => ({
+      ...prev,
+      currentY: touch.clientY,
+    }));
+  }, [swipeState.isSwiping, swipeState.karteId]);
+
+  // Touch-End Handler für Swipe
+  const handleTouchEnd = useCallback((karte: Karte) => {
+    if (!swipeState.isSwiping || swipeState.karteId !== karte.id) {
+      setSwipeState({ karteId: null, startY: 0, currentY: 0, isSwiping: false });
+      return;
+    }
+
+    const swipeDistance = swipeState.startY - swipeState.currentY;
+    const istSpielbar = spielbareKarten.length === 0 || spielbareKarten.includes(karte.id);
+
+    // Swipe nach oben erkannt?
+    if (swipeDistance > SWIPE_THRESHOLD && istSpielbar && onCardPlay) {
+      hapticMedium();
+      onCardPlay(karte.id);
+    }
+
+    setSwipeState({ karteId: null, startY: 0, currentY: 0, isSwiping: false });
+  }, [swipeState, spielbareKarten, onCardPlay]);
+
   // Kombinierter Touch/Click Handler für Mobile-freundliches Double-Tap
   const handleCardTap = useCallback((karte: Karte) => {
     if (hidden) return;
@@ -45,6 +100,7 @@ export default function Hand({
       // Double-Tap → Karte spielen
       const istSpielbar = spielbareKarten.length === 0 || spielbareKarten.includes(karte.id);
       if (istSpielbar && onCardPlay) {
+        hapticMedium();
         onCardPlay(karte.id);
         lastTapRef.current[karte.id] = 0; // Reset
         return;
@@ -56,6 +112,7 @@ export default function Hand({
 
     // Wenn nicht am Zug: Vorauswahl (Toggle)
     if (!isCurrentPlayer && onCardPreSelect) {
+      hapticTap();
       if (preSelectedCard === karte.id) {
         onCardPreSelect(null);
       } else {
@@ -68,6 +125,7 @@ export default function Hand({
     const istSpielbar = spielbareKarten.length === 0 || spielbareKarten.includes(karte.id);
     if (!istSpielbar) return;
 
+    hapticTap();
     if (onCardSelect) {
       if (selectedCard === karte.id) {
         // Bereits ausgewählt → abwählen
@@ -87,6 +145,7 @@ export default function Hand({
     if (!istSpielbar) return;
 
     if (onCardPlay) {
+      hapticMedium();
       onCardPlay(karte.id);
     }
   };
@@ -97,6 +156,20 @@ export default function Hand({
     // Auf Mobilgeräten stärkere Überlappung
     const baseOverlap = karten.length > 4 ? -24 : -18;
     return `${baseOverlap}px`;
+  };
+
+  // Berechne Swipe-Offset für Animation
+  const getSwipeOffset = (karteId: string): number => {
+    if (swipeState.karteId !== karteId || !swipeState.isSwiping) return 0;
+    const offset = swipeState.startY - swipeState.currentY;
+    // Max -60px nach oben
+    return Math.min(Math.max(offset, 0), 60);
+  };
+
+  // Ist die Karte bereit zum Spielen (Swipe-Threshold erreicht)?
+  const isSwipeReady = (karteId: string): boolean => {
+    if (swipeState.karteId !== karteId || !swipeState.isSwiping) return false;
+    return (swipeState.startY - swipeState.currentY) > SWIPE_THRESHOLD;
   };
 
   return (
@@ -112,20 +185,28 @@ export default function Hand({
             const istSpielbar = spielbareKarten.length === 0 || spielbareKarten.includes(karte.id);
             const isSelected = selectedCard === karte.id;
             const isPreSelected = preSelectedCard === karte.id;
+            const swipeOffset = getSwipeOffset(karte.id);
+            const swipeReady = isSwipeReady(karte.id);
 
             return (
               <div
                 key={karte.id}
-                className={`hand-card transition-all duration-200 cursor-pointer relative ${isPreSelected ? 'animate-pulse' : ''}`}
+                className={`hand-card transition-all duration-200 cursor-pointer relative ${isPreSelected ? 'animate-pulse' : ''} ${swipeReady ? 'card-swipe-ready' : ''}`}
                 style={{
                   transform: isSelected || isPreSelected
-                    ? 'translateY(-20px) scale(1.05)'
-                    : `rotate(${(index - (karten.length - 1) / 2) * 5}deg)`,
-                  zIndex: isSelected || isPreSelected ? 100 : index,
-                  filter: isPreSelected ? 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.8))' : 'none',
-                  touchAction: 'manipulation', // Verhindert Zoom bei Double-Tap
+                    ? `translateY(-20px) scale(1.05)`
+                    : swipeOffset > 0
+                      ? `translateY(-${swipeOffset}px) rotate(${(index - (karten.length - 1) / 2) * 5}deg)`
+                      : `rotate(${(index - (karten.length - 1) / 2) * 5}deg)`,
+                  zIndex: isSelected || isPreSelected || swipeOffset > 0 ? 100 : index,
+                  filter: isPreSelected ? 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.8))' : swipeReady ? 'drop-shadow(0 0 15px rgba(212, 175, 55, 0.8))' : 'none',
+                  touchAction: 'none', // Wichtig für Swipe-Geste
+                  transition: swipeOffset > 0 ? 'none' : 'all 0.2s ease',
                 }}
                 onDoubleClick={() => handleDoubleClick(karte)}
+                onTouchStart={(e) => handleTouchStart(e, karte)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={() => handleTouchEnd(karte)}
               >
                 <Card
                   karte={karte}
@@ -134,6 +215,21 @@ export default function Hand({
                   disabled={!istSpielbar && isCurrentPlayer}
                   hidden={hidden}
                 />
+
+                {/* Swipe-Indikator */}
+                {swipeReady && isCurrentPlayer && (
+                  <div
+                    className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap animate-bounce"
+                    style={{
+                      background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
+                      color: '#1a1a1a',
+                      boxShadow: '0 4px 12px rgba(212, 175, 55, 0.6)',
+                    }}
+                  >
+                    Loslassen!
+                  </div>
+                )}
+
                 {/* Vorauswahl-Indikator */}
                 {isPreSelected && (
                   <div
@@ -153,17 +249,17 @@ export default function Hand({
         </div>
       </div>
 
-      {/* Hinweis */}
+      {/* Hinweis - aktualisiert für Swipe */}
       {karten.length > 0 && (
         <div
-          className="text-xs text-amber-200/70 text-center"
+          className="text-xs text-amber-200/70 text-center px-2"
           style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
         >
           {isCurrentPlayer
-            ? 'Doppelklick zum Spielen'
+            ? (selectedCard ? 'Nach oben wischen zum Spielen' : 'Tippen zum Auswählen, wischen zum Spielen')
             : preSelectedCard
               ? 'Wird automatisch gespielt'
-              : 'Klick zum Vorauswählen'}
+              : 'Tippen zum Vorauswählen'}
         </div>
       )}
     </div>

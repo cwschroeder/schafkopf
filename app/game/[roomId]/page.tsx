@@ -11,9 +11,11 @@ import GameLegen from '@/components/GameLegen';
 import GameAnnounce from '@/components/GameAnnounce';
 import ScoreBoard from '@/components/ScoreBoard';
 import { VoiceButton } from '@/components/VoiceButton';
+import { ConnectionIndicator } from '@/components/ConnectionIndicator';
 import { useBavarianSpeech } from '@/hooks/useBavarianSpeech';
 import { playBase64Audio } from '@/lib/tts-client';
 import { apiUrl } from '@/lib/api';
+import { hapticTap, hapticMedium, hapticAnsage, hapticGewonnen, hapticVerloren } from '@/lib/haptics';
 import {
   checkMitspielerReaktionNachStich,
   checkPartnerGefunden,
@@ -100,6 +102,22 @@ export default function GamePage() {
       setLastGameId(currentGameId);
     }
   }, [gameState, lastGameId]);
+
+  // Animation-Flag zurücksetzen wenn Animation nicht mehr gezeigt werden sollte
+  // (z.B. nach State-Sync wenn schon Entscheidungen getroffen wurden)
+  useEffect(() => {
+    if (!gameState || !showDealingAnimation) return;
+
+    // Wenn wir in einer Phase sind wo Animation nicht mehr passt, zurücksetzen
+    const shouldClearAnimation =
+      gameState.phase !== 'legen' ||
+      gameState.legenEntscheidungen.length > 0;
+
+    if (shouldClearAnimation) {
+      console.log('[Animation] Resetting animation flag - past animation point');
+      setShowDealingAnimation(false);
+    }
+  }, [gameState, showDealingAnimation]);
 
   // Spieler laden
   useEffect(() => {
@@ -189,6 +207,39 @@ export default function GamePage() {
     // Channel abonnieren
     const channel = roomChannel(roomId);
     subscribeToChannel(socket, channel, playerId, playerName);
+
+    // Reconnect-Handler: Nach Verbindungsverlust State synchronisieren
+    const handleReconnect = async () => {
+      console.log('[Socket] Reconnected - synchronisiere State...');
+      // Channel neu abonnieren
+      subscribeToChannel(socket, channel, playerId, playerName);
+
+      // Aktuellen Game-State vom Server holen
+      try {
+        const gameRes = await fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`));
+        if (gameRes.ok) {
+          const state = await gameRes.json();
+          if (state && state.phase) {
+            console.log('[Socket] Game-State synchronisiert:', state.phase);
+            setGameState(state);
+          }
+        }
+      } catch (e) {
+        console.warn('[Socket] State-Sync fehlgeschlagen:', e);
+      }
+
+      // Raum-State auch aktualisieren
+      try {
+        const roomRes = await fetch(apiUrl(`/api/rooms?roomId=${roomId}`));
+        if (roomRes.ok) {
+          const room = await roomRes.json();
+          setWaitingRoom(room);
+          setCurrentRoom(room);
+        }
+      } catch {}
+    };
+
+    socket.on('connect', handleReconnect);
 
     // Raum-Events Handler
     const handlePlayerJoined = ({ room }: { room: Raum }) => setWaitingRoom(room);
@@ -356,6 +407,7 @@ export default function GamePage() {
     socket.on(EVENTS.VOICE_MESSAGE, handleVoiceMessage);
 
     return () => {
+      socket.off('connect', handleReconnect);
       socket.off(EVENTS.PLAYER_JOINED, handlePlayerJoined);
       socket.off(EVENTS.PLAYER_LEFT, handlePlayerLeft);
       socket.off(EVENTS.PLAYER_READY, handlePlayerReady);
@@ -372,6 +424,67 @@ export default function GamePage() {
       unsubscribeFromChannel(socket, channel);
     };
   }, [playerId, playerName, roomId, setGameState, setWaitingRoom, setCurrentRoom, speakAnsage, speakStichGewonnen, speakMitspielerReaktion]);
+
+  // Periodischer State-Sync falls keine Push-Events kommen
+  useEffect(() => {
+    if (!playerId || !roomId) return;
+
+    let lastEventTime = Date.now();
+    const SYNC_INTERVAL = 10000; // 10 Sekunden
+    const STALE_THRESHOLD = 15000; // Sync wenn 15s kein Event kam
+
+    // Event-Listener um lastEventTime zu aktualisieren
+    const socket = getPusherClient();
+    const updateLastEvent = () => {
+      lastEventTime = Date.now();
+    };
+
+    // Bei jedem relevanten Event Zeit aktualisieren
+    if (socket) {
+      socket.onAny(updateLastEvent);
+    }
+
+    // Periodisch prüfen ob State stale ist
+    const interval = setInterval(async () => {
+      const timeSinceLastEvent = Date.now() - lastEventTime;
+      if (timeSinceLastEvent > STALE_THRESHOLD) {
+        console.log('[Sync] Keine Events seit', Math.round(timeSinceLastEvent / 1000), 's - hole aktuellen State');
+
+        // Game-State holen
+        try {
+          const gameRes = await fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`));
+          if (gameRes.ok) {
+            const state = await gameRes.json();
+            if (state && state.phase) {
+              console.log('[Sync] GameState geladen - Phase:', state.phase, 'LegenEntscheidungen:', state.legenEntscheidungen?.length || 0);
+              setGameState(state);
+            }
+          }
+        } catch {}
+
+        // Room-State holen
+        try {
+          const roomRes = await fetch(apiUrl(`/api/rooms?roomId=${roomId}`));
+          if (roomRes.ok) {
+            const room = await roomRes.json();
+            if (room && room.id) {
+              setWaitingRoom(room);
+              setCurrentRoom(room);
+            }
+          }
+        } catch {}
+
+        lastEventTime = Date.now(); // Reset nach Sync
+      }
+    }, SYNC_INTERVAL);
+
+    return () => {
+      clearInterval(interval);
+      if (socket) {
+        socket.offAny(updateLastEvent);
+      }
+    };
+  }, [playerId, roomId, setGameState, setWaitingRoom, setCurrentRoom]);
 
   // Raum verlassen
   const leaveRoom = async () => {
@@ -481,6 +594,7 @@ export default function GamePage() {
   // Legen-Entscheidung
   const handleLegen = (willLegen: boolean) => {
     if (isLoading) return;
+    hapticTap(); // Haptisches Feedback
     setIsLoading(true);
     ensureAudioReady();
     fetch(apiUrl('/api/game'), {
@@ -496,6 +610,7 @@ export default function GamePage() {
   // Ansage machen
   const handleAnsage = (ansage: Ansage, gesuchteAss?: Farbe) => {
     if (isLoading) return;
+    hapticAnsage(); // Haptisches Feedback
     setIsLoading(true);
     ensureAudioReady();
     fetch(apiUrl('/api/game'), {
@@ -510,6 +625,7 @@ export default function GamePage() {
 
   // Karte spielen
   const handleCardPlay = useCallback((karteId: string) => {
+    hapticMedium(); // Haptisches Feedback
     ensureAudioReady();
     setSelectedCard(null);
     setPreSelectedCard(null);
@@ -582,8 +698,9 @@ export default function GamePage() {
 
   if (!playerId) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Laden...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+        <div className="text-lg text-amber-200">Verbinde...</div>
       </div>
     );
   }
@@ -613,6 +730,9 @@ export default function GamePage() {
 
     return (
       <main className="min-h-screen p-4">
+        {/* Verbindungs-Indikator */}
+        <ConnectionIndicator />
+
         <div className="max-w-lg mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-amber-400">{waitingRoom.name}</h1>
@@ -798,6 +918,9 @@ export default function GamePage() {
         className="h-dvh max-h-dvh p-0 flex flex-col overflow-hidden"
         style={{ touchAction: 'manipulation' }}
       >
+        {/* Verbindungs-Indikator */}
+        <ConnectionIndicator />
+
         {/* Spieltisch - füllt verfügbaren Platz */}
         <div className="flex-1 min-h-0 flex items-center justify-center relative p-1">
           <Table
@@ -821,22 +944,18 @@ export default function GamePage() {
           )}
         </div>
 
-        {/* Legen-Dialog - oben positioniert */}
+        {/* Legen-Dialog - Bottom Sheet */}
         {shouldShowLegen && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
-            <GameLegen onLegen={handleLegen} kartenAnzahl={3} />
-          </div>
+          <GameLegen onLegen={handleLegen} kartenAnzahl={3} />
         )}
 
-        {/* Ansage-Dialog - oben positioniert damit Karten sichtbar bleiben */}
+        {/* Ansage-Dialog - Bottom Sheet */}
         {isMyTurnToAnnounce && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
-            <GameAnnounce
-              hand={mySpieler.hand}
-              onAnsage={handleAnsage}
-              bisherigeHoechsteAnsage={gameState.gespielteAnsage}
-            />
-          </div>
+          <GameAnnounce
+            hand={mySpieler.hand}
+            onAnsage={handleAnsage}
+            bisherigeHoechsteAnsage={gameState.gespielteAnsage}
+          />
         )}
 
         {/* Ergebnis-Overlay */}
@@ -847,6 +966,7 @@ export default function GamePage() {
             spielmacherId={gameState.spielmacher!}
             partnerId={gameState.partner}
             playerId={playerId}
+            playerName={playerName || undefined}
             onNeueRunde={handleNeueRunde}
             onBeenden={leaveRoom}
           />
@@ -854,20 +974,23 @@ export default function GamePage() {
 
         {/* Karte spielen Button (wenn ausgewählt und am Zug) */}
         {selectedCard && gameState.phase === 'spielen' && gameState.aktuellerSpieler === myIndex && (
-          <div className="fixed bottom-28 left-1/2 -translate-x-1/2">
+          <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-30">
             <button
               onClick={() => handleCardPlay(selectedCard)}
-              className="btn btn-primary px-6 py-2 text-base shadow-lg animate-pulse"
+              className="btn btn-primary px-8 py-3 text-lg font-bold shadow-xl animate-pulse min-w-[120px]"
+              style={{
+                boxShadow: '0 4px 20px rgba(212,175,55,0.5), 0 0 40px rgba(212,175,55,0.3)',
+              }}
             >
-              ▶ Spielen
+              Spielen
             </button>
           </div>
         )}
 
-        {/* Verlassen-Button */}
+        {/* Verlassen-Button - größeres Touch-Target */}
         <button
           onClick={leaveRoom}
-          className="fixed top-2 right-2 btn btn-secondary text-xs opacity-50 hover:opacity-100"
+          className="fixed top-2 right-2 btn btn-secondary text-sm px-3 py-2 min-w-[44px] min-h-[44px] opacity-70 hover:opacity-100 active:opacity-100"
         >
           Verlassen
         </button>

@@ -6,6 +6,7 @@ import { useGameStore, loadPlayerFromStorage } from '@/lib/store';
 import { getPusherClient, EVENTS, lobbyChannel, subscribeToChannel, unsubscribeFromChannel } from '@/lib/pusher';
 import { Raum } from '@/lib/schafkopf/types';
 import { apiUrl } from '@/lib/api';
+import { ConnectionIndicator } from '@/components/ConnectionIndicator';
 
 export default function Lobby() {
   const router = useRouter();
@@ -155,6 +156,9 @@ export default function Lobby() {
 
   return (
     <main className="min-h-screen p-4">
+      {/* Verbindungs-Indikator */}
+      <ConnectionIndicator />
+
       <div className="max-w-lg mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

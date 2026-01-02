@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { hapticGewonnen, hapticVerloren } from '@/lib/haptics';
 import { SpielErgebnis, Spieler, Karte } from '@/lib/schafkopf/types';
 import { formatiereBetrag, ergebnisZusammenfassung } from '@/lib/schafkopf/scoring';
 import { AUGEN } from '@/lib/schafkopf/cards';
@@ -11,6 +12,7 @@ interface ScoreBoardProps {
   spielmacherId: string;
   partnerId: string | null;
   playerId: string; // Aktueller Spieler (für Anzeige ob ICH gewonnen habe)
+  playerName?: string; // Für Fallback-Match wenn IDs nicht übereinstimmen
   onNeueRunde: () => void;
   onBeenden: () => void;
 }
@@ -21,6 +23,7 @@ export default function ScoreBoard({
   spielmacherId,
   partnerId,
   playerId,
+  playerName,
   onNeueRunde,
   onBeenden,
 }: ScoreBoardProps) {
@@ -72,10 +75,28 @@ export default function ScoreBoard({
     .map(s => s.name)
     .join(' & ');
 
+  // Finde den aktuellen Spieler - erst nach ID, dann nach Name als Fallback
+  let meinSpieler = spieler.find(s => s.id === playerId);
+  if (!meinSpieler && playerName) {
+    // Fallback: Suche nach Name (falls ID nicht matcht, z.B. nach Session-Wechsel)
+    meinSpieler = spieler.find(s => s.name === playerName);
+    console.log('[ScoreBoard] ID-Match fehlgeschlagen, Name-Fallback:', meinSpieler?.name);
+  }
+
   // Prüfe ob ICH (der aktuelle Spieler) gewonnen habe
-  const binImSpielmacherTeam = playerId === spielmacherId || playerId === partnerId;
+  const meineId = meinSpieler?.id;
+  const binImSpielmacherTeam = meineId === spielmacherId || meineId === partnerId;
   const spielmacherHatGewonnen = ergebnis.gewinner === 'spielmacher';
   const ichHabeGewonnen = binImSpielmacherTeam === spielmacherHatGewonnen;
+
+  // Haptic Feedback beim Anzeigen des Ergebnisses
+  useEffect(() => {
+    if (ichHabeGewonnen) {
+      hapticGewonnen();
+    } else {
+      hapticVerloren();
+    }
+  }, [ichHabeGewonnen]);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-1 sm:p-4">
