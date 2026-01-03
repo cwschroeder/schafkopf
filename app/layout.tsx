@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import AuthProvider from '@/components/auth/AuthProvider';
+import ThemeProvider from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Schafkopf Online',
@@ -32,7 +34,11 @@ export default function RootLayout({
   return (
     <html lang="de" className="h-full">
       <body className="h-full min-h-dvh text-white overflow-hidden">
-        {children}
+        <AuthProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -14,9 +14,41 @@ function hashText(text: string): string {
   return crypto.createHash('md5').update(text).digest('hex').slice(0, 8);
 }
 
+// Voice-Key Mapping: voiceKey -> OpenAI voice
+const VOICE_MAPPING: Record<string, string> = {
+  m1: 'echo',    // männlich 1 (tief, ruhig)
+  m2: 'onyx',    // männlich 2 (kräftig)
+  f1: 'nova',    // weiblich 1 (warm)
+  f2: 'shimmer', // weiblich 2 (hell)
+  // Legacy
+  echo: 'echo',
+  onyx: 'onyx',
+  nova: 'nova',
+  shimmer: 'shimmer',
+  alloy: 'alloy',
+  fable: 'fable',
+};
+
+// VoiceKey -> Dateiprefix Mapping
+const VOICE_PREFIX: Record<string, string> = {
+  m1: 'm1',
+  m2: 'm2',
+  f1: 'f1',
+  f2: 'f2',
+  // Legacy
+  echo: 'm',
+  onyx: 'm',
+  fable: 'm',
+  nova: 'f',
+  shimmer: 'f',
+  alloy: 'f',
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const { text, voice = 'echo' } = await request.json();
+    const { text, voice = 'm1', voiceKey } = await request.json();
+    // voiceKey hat Priorität, ansonsten voice als Fallback
+    const effectiveVoiceKey = voiceKey || voice;
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'Text ist erforderlich' }, { status: 400 });
@@ -26,10 +58,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OPENAI_API_KEY nicht konfiguriert' }, { status: 500 });
     }
 
-    // Validiere voice
-    const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
-    if (!validVoices.includes(voice)) {
-      return NextResponse.json({ error: `Ungültige Stimme. Erlaubt: ${validVoices.join(', ')}` }, { status: 400 });
+    // Validiere voice/voiceKey
+    const openaiVoice = VOICE_MAPPING[effectiveVoiceKey];
+    if (!openaiVoice) {
+      return NextResponse.json({
+        error: `Ungültige Stimme "${effectiveVoiceKey}". Erlaubt: m1, m2, f1, f2`
+      }, { status: 400 });
     }
 
     // Generiere Audio mit OpenAI TTS
@@ -38,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1-hd',
-      voice: voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
+      voice: openaiVoice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer',
       input: germanizedText,
       response_format: 'mp3',
     });
@@ -47,7 +81,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await mp3.arrayBuffer());
 
     // Dateiname: {voice-prefix}-{hash}.mp3
-    const voicePrefix = voice === 'echo' || voice === 'onyx' || voice === 'fable' ? 'm' : 'f';
+    const voicePrefix = VOICE_PREFIX[effectiveVoiceKey] || 'm1';
     const hash = hashText(text);
     const filename = `${voicePrefix}-${hash}.mp3`;
 
@@ -67,7 +101,9 @@ export async function POST(request: NextRequest) {
       success: true,
       filename,
       text,
-      voice,
+      voice: effectiveVoiceKey,
+      voiceKey: effectiveVoiceKey,
+      openaiVoice,
       voicePrefix,
       audio: `data:audio/mp3;base64,${base64}`,
       size: buffer.length,

@@ -23,7 +23,9 @@ declare module 'next-auth' {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: RedisAdapter(),
-  
+  trustHost: true,
+  basePath: '/schafkopf/api/auth',
+
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
@@ -41,10 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     maxAge: 30 * 24 * 60 * 60, // 30 Tage
   },
 
-  // Base Path für Deployment
-  basePath: '/schafkopf/api/auth',
-
-  // Seiten-Konfiguration
+  // Seiten-Konfiguration (absolute Pfade mit basePath)
   pages: {
     signIn: '/schafkopf/login',
     error: '/schafkopf/login',
@@ -81,15 +80,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // Redirect Callback: Basis-Path berücksichtigen
     async redirect({ url, baseUrl }) {
-      // Relative URLs in absolute URLs umwandeln
+      const basePath = '/schafkopf';
+
+      // Relative URLs in absolute URLs umwandeln (mit basePath)
       if (url.startsWith('/')) {
-        return `${baseUrl}${url}`;
+        // Wenn URL bereits mit basePath beginnt, nicht doppelt hinzufügen
+        if (url.startsWith(basePath)) {
+          return `${baseUrl}${url}`;
+        }
+        return `${baseUrl}${basePath}${url}`;
       }
       // Gleiche Origin erlauben
       if (url.startsWith(baseUrl)) {
         return url;
       }
-      return baseUrl + '/schafkopf/lobby';
+      return baseUrl + basePath + '/lobby';
     },
   },
 

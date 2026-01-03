@@ -1,95 +1,137 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { LoginButton } from '@/components/auth/LoginButton';
+import { GoogleLoginButton, GitHubLoginButton } from '@/components/auth/LoginButton';
+import { hapticTap } from '@/lib/haptics';
 
-export default function LoginPage() {
+function LoginContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+  const callbackUrl = searchParams.get('callbackUrl') || '/lobby';
 
-  // Redirect if already logged in
+  // Wenn bereits eingeloggt, weiterleiten
   useEffect(() => {
     if (session) {
-      router.push('/lobby');
+      router.push(callbackUrl);
     }
-  }, [session, router]);
+  }, [session, router, callbackUrl]);
 
+  // Loading State
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Laden...</div>
+        <div className="spinner w-12 h-12" />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        {/* Logo / Titel */}
-        <div className="text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-amber-400 mb-2">
-            Schafkopf
-          </h1>
-          <p className="text-gray-300">Anmelden</p>
-        </div>
-
-        {/* Karten-Deko */}
-        <div className="flex justify-center gap-2 py-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/schafkopf/cards/Eichel-11.svg" alt="Eichel Ass" className="w-12 h-auto rounded shadow-lg transform -rotate-12" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/schafkopf/cards/Gras-11.svg" alt="Gras Ass" className="w-12 h-auto rounded shadow-lg transform -rotate-4" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/schafkopf/cards/Herz-11.svg" alt="Herz Ass" className="w-12 h-auto rounded shadow-lg transform rotate-4" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/schafkopf/cards/Schellen-11.svg" alt="Schellen Ass" className="w-12 h-auto rounded shadow-lg transform rotate-12" />
-        </div>
-
-        {/* Login Options */}
-        <div className="bg-gray-800/50 backdrop-blur rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-center text-amber-100 mb-4">
-            Mit Account anmelden
-          </h2>
-
-          <div className="space-y-3">
-            <LoginButton provider="google" className="w-full" />
-            <LoginButton provider="github" className="w-full" />
-          </div>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-800/50 text-gray-400">oder</span>
-            </div>
-          </div>
-
-          <Link
-            href="/"
-            className="block w-full text-center px-6 py-3 rounded-lg font-medium bg-amber-700 hover:bg-amber-600 text-white transition-colors"
-          >
-            Als Gast spielen
-          </Link>
-        </div>
-
-        {/* Info */}
-        <div className="bg-gray-800/30 rounded-lg p-4 text-sm text-gray-400 space-y-2">
-          <h3 className="font-semibold text-gray-300">Warum anmelden?</h3>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Statistiken und Leaderboard</li>
-            <li>Einstellungen werden gespeichert</li>
-            <li>Deine Erfolge werden festgehalten</li>
-          </ul>
-          <p className="text-xs text-gray-500 mt-2">
-            Du kannst auch ohne Account spielen - deine bisherigen Spiele kannst du
-            später mit deinem Account verknüpfen.
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+      {/* Logo / Title */}
+      <div className="text-center mb-8">
+        <h1
+          className="text-4xl font-bold mb-2"
+          style={{
+            background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Schafkopf
+        </h1>
+        <p className="text-amber-200/70">Online spielen mit Freunden</p>
       </div>
-    </main>
+
+      {/* Login Card */}
+      <div
+        className="w-full max-w-md rounded-2xl p-6"
+        style={{
+          background: 'linear-gradient(135deg, #3e2723 0%, #4e342e 100%)',
+          border: '1px solid rgba(139,90,43,0.3)',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        }}
+      >
+        <h2 className="text-xl font-bold text-amber-100 text-center mb-6">
+          Anmelden
+        </h2>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30">
+            <p className="text-sm text-red-300 text-center">
+              {error === 'OAuthSignin' && 'Fehler beim Starten der Anmeldung.'}
+              {error === 'OAuthCallback' && 'Fehler bei der Rückmeldung vom Provider.'}
+              {error === 'OAuthCreateAccount' && 'Fehler beim Erstellen des Accounts.'}
+              {error === 'Callback' && 'Ein Fehler ist aufgetreten.'}
+              {!['OAuthSignin', 'OAuthCallback', 'OAuthCreateAccount', 'Callback'].includes(error) && 
+                'Ein unbekannter Fehler ist aufgetreten.'}
+            </p>
+          </div>
+        )}
+
+        {/* OAuth Buttons */}
+        <div className="flex flex-col gap-3">
+          <GoogleLoginButton />
+          <GitHubLoginButton />
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 my-6">
+          <div className="flex-1 h-px bg-amber-800/50" />
+          <span className="text-amber-500 text-sm">oder</span>
+          <div className="flex-1 h-px bg-amber-800/50" />
+        </div>
+
+        {/* Guest Button */}
+        <Link
+          href="/lobby"
+          onClick={() => hapticTap()}
+          className="
+            flex items-center justify-center gap-2 w-full
+            px-6 py-3 rounded-lg font-medium
+            bg-amber-800/50 hover:bg-amber-800
+            text-amber-200 hover:text-amber-100
+            border border-amber-700/50 hover:border-amber-600
+            transition-all duration-200
+          "
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          Als Gast spielen
+        </Link>
+
+        {/* Info Text */}
+        <p className="text-center text-xs text-amber-400/60 mt-4">
+          Mit einem Account werden deine Statistiken gespeichert und du erscheinst im Leaderboard.
+        </p>
+      </div>
+
+      {/* Back Link */}
+      <Link
+        href="/"
+        className="mt-6 text-amber-500 hover:text-amber-400 text-sm transition-colors"
+        onClick={() => hapticTap()}
+      >
+        &larr; Zurück zur Startseite
+      </Link>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="spinner w-12 h-12" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

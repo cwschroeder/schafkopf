@@ -9,6 +9,7 @@ import { AUS_IS, randomPhrase, speak } from '@/lib/bavarian-speech';
 import Hand from './Hand';
 import PlayerInfo from './PlayerInfo';
 import Stich, { LetzterStich } from './Stich';
+import Card from './Card';
 
 interface TableProps {
   state: SpielState;
@@ -165,6 +166,23 @@ export default function Table({
         <Stich stich={state.aktuellerStich} spieler={state.spieler} myPosition={myIndex} isCollecting={isCollecting} />
       </div>
 
+      {/* Letzter Stich beim Gewinner anzeigen */}
+      {state.letzterStich && state.letzterStich.karten.length > 0 && state.letzterStich.gewinner && (() => {
+        const gewinnerIndex = state.spieler.findIndex(s => s.id === state.letzterStich!.gewinner);
+        const relativPos = (gewinnerIndex - myIndex + 4) % 4;
+        const positions: ('bottom' | 'right' | 'top' | 'left')[] = ['bottom', 'right', 'top', 'left'];
+        const gewinnerPosition = positions[relativPos];
+        return (
+          <LetzterStichBeiGewinner
+            stich={state.letzterStich}
+            spieler={state.spieler}
+            myPosition={myIndex}
+            gewinnerPosition={gewinnerPosition}
+            onClick={() => setShowLetzterStich(true)}
+          />
+        );
+      })()}
+
       {/* Spieler oben */}
       <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2">
         <PlayerInfo
@@ -213,8 +231,8 @@ export default function Table({
         )}
       </div>
 
-      {/* Meine Karten (unten) */}
-      <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 sm:gap-2">
+      {/* Meine Karten (unten) - z-45 damit über Ansage-Backdrop sichtbar */}
+      <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 sm:gap-2 z-[45]">
         <Hand
           karten={state.phase === 'legen' ? mySpieler.hand.slice(0, 3) : mySpieler.hand}
           spielbareKarten={meineSpielbarenKarten}
@@ -515,6 +533,79 @@ function formatAnsageKurz(ansage: string, gesuchteAss?: string | null): string {
   };
 
   return KURZ[ansage] || ansage.slice(0, 4);
+}
+
+// Letzter Stich Anzeige beim Gewinner
+function LetzterStichBeiGewinner({
+  stich,
+  spieler,
+  myPosition,
+  gewinnerPosition,
+  onClick,
+}: {
+  stich: { karten: { spielerId: string; karte: { id: string; farbe: string; wert: string } }[]; gewinner: string | null };
+  spieler: { id: string; name: string }[];
+  myPosition: number;
+  gewinnerPosition: 'top' | 'right' | 'left' | 'bottom';
+  onClick: () => void;
+}) {
+  if (!stich.karten || stich.karten.length === 0) return null;
+
+  // Position am Bildschirmrand je nach Gewinner-Position
+  const positionClasses: Record<string, string> = {
+    bottom: 'bottom-24 left-1/2 -translate-x-1/2',
+    top: 'top-20 left-1/2 -translate-x-1/2',
+    left: 'left-16 top-1/2 -translate-y-1/2',
+    right: 'right-16 top-1/2 -translate-y-1/2',
+  };
+
+  // Karten sortiert nach Spielreihenfolge anzeigen
+  return (
+    <div
+      className={`absolute ${positionClasses[gewinnerPosition]} cursor-pointer z-10 transition-all hover:scale-110`}
+      onClick={onClick}
+      title="Letzter Stich anzeigen"
+    >
+      <div className="relative flex gap-0.5">
+        {stich.karten.map((k, i) => {
+          const isWinner = k.spielerId === stich.gewinner;
+          return (
+            <div
+              key={k.karte.id}
+              className="relative"
+              style={{
+                transform: `rotate(${(i - 1.5) * 5}deg)`,
+                marginLeft: i > 0 ? '-8px' : '0',
+                zIndex: i,
+              }}
+            >
+              <div
+                className="w-6 h-9 sm:w-8 sm:h-12 rounded overflow-hidden border"
+                style={{
+                  borderColor: isWinner ? '#d4af37' : 'rgba(139,90,43,0.5)',
+                  borderWidth: isWinner ? '2px' : '1px',
+                  boxShadow: isWinner
+                    ? '0 0 8px rgba(212,175,55,0.6)'
+                    : '0 1px 3px rgba(0,0,0,0.3)',
+                }}
+              >
+                <Card karte={k.karte as any} size="sm" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div
+        className="text-center text-[9px] sm:text-[10px] mt-1 px-1 py-0.5 rounded"
+        style={{
+          background: 'rgba(62,39,35,0.9)',
+          color: '#d4af37',
+        }}
+      >
+        {spieler.find(s => s.id === stich.gewinner)?.name?.slice(0, 8)}
+      </div>
+    </div>
+  );
 }
 
 // Bayerische Sprechblase

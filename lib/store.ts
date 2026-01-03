@@ -2,9 +2,25 @@
 
 import { create } from 'zustand';
 import { SpielState, Raum } from './schafkopf/types';
+import type { UserAccount } from './auth/types';
+
+// Authenticated user info from session
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+  settings?: UserAccount['settings'];
+}
 
 interface GameStore {
-  // Spieler-Info
+  // Auth State
+  authUser: AuthUser | null;
+  isAuthenticated: boolean;
+  setAuthUser: (user: AuthUser | null) => void;
+  clearAuthUser: () => void;
+
+  // Spieler-Info (for anonymous play)
   playerId: string | null;
   playerName: string | null;
   setPlayer: (id: string, name: string) => void;
@@ -41,7 +57,13 @@ interface GameStore {
 }
 
 export const useGameStore = create<GameStore>((set) => ({
-  // Spieler-Info
+  // Auth State
+  authUser: null,
+  isAuthenticated: false,
+  setAuthUser: (user) => set({ authUser: user, isAuthenticated: user !== null }),
+  clearAuthUser: () => set({ authUser: null, isAuthenticated: false }),
+
+  // Spieler-Info (for anonymous play)
   playerId: null,
   playerName: null,
   setPlayer: (id, name) => set({ playerId: id, playerName: name }),

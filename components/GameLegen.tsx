@@ -37,9 +37,9 @@ export default function GameLegen({ onLegen, kartenAnzahl, isLoading = false }: 
           />
         </div>
 
-        <div className="px-6 pb-6 pt-2 flex flex-col gap-4">
+        <div className="px-4 pb-4 pt-1 flex flex-col gap-2">
           <h3
-            className="text-xl font-bold text-center"
+            className="text-base sm:text-lg font-bold text-center"
             style={{
               background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
               WebkitBackgroundClip: 'text',
@@ -49,15 +49,15 @@ export default function GameLegen({ onLegen, kartenAnzahl, isLoading = false }: 
             Willst du legen?
           </h3>
 
-          <p className="text-sm text-center text-amber-200/70">
+          <p className="text-xs text-center text-amber-200/70">
             {kartenAnzahl} Karten gesehen - Einsatz verdoppeln?
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handleLegen(true)}
               disabled={isLoading}
-              className={`btn btn-primary flex items-center justify-center gap-2 py-4 text-lg font-bold ${isLoading ? 'opacity-50' : ''}`}
+              className={`btn btn-primary flex items-center justify-center gap-2 py-2.5 text-base font-bold ${isLoading ? 'opacity-50' : ''}`}
             >
               {isLoading ? (
                 <span className="spinner" />
@@ -68,7 +68,7 @@ export default function GameLegen({ onLegen, kartenAnzahl, isLoading = false }: 
             <button
               onClick={() => handleLegen(false)}
               disabled={isLoading}
-              className={`btn btn-secondary flex items-center justify-center gap-2 py-4 text-lg ${isLoading ? 'opacity-50' : ''}`}
+              className={`btn btn-secondary flex items-center justify-center gap-2 py-2.5 text-base ${isLoading ? 'opacity-50' : ''}`}
             >
               {isLoading ? (
                 <span className="spinner" />

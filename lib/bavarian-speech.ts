@@ -460,9 +460,44 @@ export const AUS_IS: BavarianPhrase[] = [
   { text: "Legt's zamm, i hob alles!", speech: "Legts zamm, i hob alles!" },
 ];
 
-// Zufällige Phrase aus Array wählen
+// History für Phrase-Wiederholungsvermeidung
+// Key: Phrases-Array-Referenz oder Hash, Value: Letzte N verwendete Indizes
+const phraseHistory = new Map<string, number[]>();
+const MAX_HISTORY = 8; // Vermeide Wiederholung der letzten 8 Sprüche
+
+// Generiert einen stabilen Key für ein Phrase-Array
+function getPhraseArrayKey(phrases: BavarianPhrase[]): string {
+  // Nimm die ersten 2 Texte als Key (stabil genug)
+  return phrases.slice(0, 2).map(p => p.text).join('|');
+}
+
+// Zufällige Phrase aus Array wählen - ohne Wiederholung der letzten N
 export function randomPhrase(phrases: BavarianPhrase[]): BavarianPhrase {
-  return phrases[Math.floor(Math.random() * phrases.length)];
+  if (phrases.length <= 1) {
+    return phrases[0] || { text: '', speech: '' };
+  }
+
+  const key = getPhraseArrayKey(phrases);
+  const history = phraseHistory.get(key) || [];
+
+  // Verfügbare Indizes (nicht in der History)
+  let availableIndices = Array.from({ length: phrases.length }, (_, i) => i)
+    .filter(i => !history.includes(i));
+
+  // Falls alle in History, nimm zumindest nicht den letzten
+  if (availableIndices.length === 0) {
+    availableIndices = Array.from({ length: phrases.length }, (_, i) => i)
+      .filter(i => i !== history[history.length - 1]);
+  }
+
+  // Zufälligen Index aus verfügbaren wählen
+  const selectedIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+
+  // History aktualisieren
+  const newHistory = [...history, selectedIndex].slice(-MAX_HISTORY);
+  phraseHistory.set(key, newHistory);
+
+  return phrases[selectedIndex];
 }
 
 // Karten-Key generieren für Kommentare

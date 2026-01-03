@@ -5,6 +5,8 @@ import { austeilen, zaehleAugen } from './cards';
 import { istTrumpf, stichGewinner, spielbareKarten, sortiereHand } from './rules';
 import { berechneErgebnis } from './scoring';
 import { createClient, RedisClientType } from 'redis';
+import { recordPlayerGameResult, saveGameToHistory } from '../stats';
+import { GameResult } from '../auth/types';
 
 const GAME_PREFIX = 'game:';
 const isLocal = !process.env.REDIS_URL;
@@ -240,7 +242,7 @@ export function verarbeiteAnsage(
         id: s.id,
         name: s.name,
         isBot: s.isBot,
-      })));
+      })), state.geber); // Geber rotiert auch beim Neu-Mischen
     }
   }
 
@@ -389,7 +391,75 @@ export function beendeRunde(state: SpielState): { state: SpielState; ergebnis: S
     }
   }
 
+  // Ergebnis im State speichern für spätere Abfragen
+  state.ergebnis = ergebnis;
+
+  // Stats asynchron aufzeichnen (fire and forget - blockiert nicht das Spiel)
+  recordGameStats(state, ergebnis).catch(err => {
+    console.error('[Stats] Fehler beim Aufzeichnen:', err);
+  });
+
   return { state, ergebnis };
+}
+
+/**
+ * Zeichnet Spielstatistiken auf (async, non-blocking)
+ */
+async function recordGameStats(state: SpielState, ergebnis: SpielErgebnis): Promise<void> {
+  const spielart = state.gespielteAnsage!;
+  const spielmacherId = state.spielmacher!;
+  const partnerId = state.partner;
+
+  // Spielerpartei und Gegnerpartei bestimmen
+  const spielerPartei = partnerId
+    ? [spielmacherId, partnerId]
+    : [spielmacherId];
+  const gegnerPartei = state.spieler
+    .filter(s => !spielerPartei.includes(s.id))
+    .map(s => s.id);
+
+  // GameResult für History erstellen
+  const gameResult: GameResult = {
+    gameId: state.id,
+    roomId: state.id.split('_')[0] || state.id,
+    timestamp: new Date(),
+    spielart,
+    spielmacher: spielmacherId,
+    partner: partnerId || undefined,
+    spielerPartei,
+    gegnerPartei,
+    punkte: ergebnis.augenSpielmacher,
+    gewonnen: ergebnis.gewinner === 'spielmacher',
+    schneider: ergebnis.schneider,
+    schwarz: ergebnis.schwarz,
+    laufende: ergebnis.laufende,
+    guthabenAenderung: ergebnis.auszahlungen.find(a => a.spielerId === spielmacherId)?.betrag || 0,
+  };
+
+  // In History speichern
+  await saveGameToHistory(gameResult);
+
+  // Stats für jeden menschlichen Spieler aufzeichnen
+  for (const auszahlung of ergebnis.auszahlungen) {
+    // Bots überspringen
+    if (auszahlung.spielerId.startsWith('bot_')) {
+      continue;
+    }
+
+    const istSpielmacherTeam = spielerPartei.includes(auszahlung.spielerId);
+    const gewonnen = istSpielmacherTeam
+      ? ergebnis.gewinner === 'spielmacher'
+      : ergebnis.gewinner === 'gegner';
+
+    await recordPlayerGameResult(
+      auszahlung.spielerId,
+      spielart,
+      gewonnen,
+      auszahlung.betrag
+    );
+  }
+
+  console.log(`[Stats] Spiel ${state.id} aufgezeichnet: ${spielart}, Gewinner: ${ergebnis.gewinner}`);
 }
 
 /**

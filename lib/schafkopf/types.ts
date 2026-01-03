@@ -97,6 +97,7 @@ export interface SpielState {
   // Ergebnis
   augenSpielmacher: number;
   augenGegner: number;
+  ergebnis?: SpielErgebnis; // Gesetzt wenn phase='runde-ende'
 }
 
 export interface Raum {
@@ -111,6 +112,8 @@ export interface Raum {
 
 export interface SpielErgebnis {
   gewinner: 'spielmacher' | 'gegner';
+  spielmacherId: string; // ID des Spielmachers (für korrekte Zuordnung nach neuer Runde)
+  partnerId: string | null; // ID des Partners (bei Sauspiel)
   augenSpielmacher: number; // Augen des Spielmacher-Teams
   augenGegner: number; // Augen der Gegner
   schneider: boolean;

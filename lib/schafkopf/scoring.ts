@@ -129,6 +129,8 @@ export function berechneErgebnis(params: AbrechnungsParams): SpielErgebnis {
 
   return {
     gewinner,
+    spielmacherId,
+    partnerId: partnerId || null,
     augenSpielmacher: spielmacherAugen,
     augenGegner: gegnerAugen,
     schneider,

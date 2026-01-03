@@ -95,16 +95,36 @@ export function RedisAdapter(): Adapter {
       const r = await getRedis();
       const userId = await r.get(`${USER_EMAIL_PREFIX}${email}`);
       if (!userId) return null;
-      
-      return this.getUser!(userId);
+
+      // Inline getUser (this-Kontext funktioniert nicht in Auth.js)
+      const data = await r.get(`${USER_PREFIX}${userId}`);
+      if (!data) return null;
+      const user: UserAccount = JSON.parse(data);
+      return {
+        id: user.id,
+        email: user.email,
+        emailVerified: null,
+        name: user.name,
+        image: user.image || null,
+      };
     },
 
     async getUserByAccount({ providerAccountId, provider }): Promise<AdapterUser | null> {
       const r = await getRedis();
       const userId = await r.get(`${USER_OAUTH_PREFIX}${provider}:${providerAccountId}`);
       if (!userId) return null;
-      
-      return this.getUser!(userId);
+
+      // Inline getUser (this-Kontext funktioniert nicht in Auth.js)
+      const data = await r.get(`${USER_PREFIX}${userId}`);
+      if (!data) return null;
+      const user: UserAccount = JSON.parse(data);
+      return {
+        id: user.id,
+        email: user.email,
+        emailVerified: null,
+        name: user.name,
+        image: user.image || null,
+      };
     },
 
     async updateUser(user): Promise<AdapterUser> {
@@ -240,15 +260,24 @@ export function RedisAdapter(): Adapter {
       if (!sessionData) return null;
 
       const session = JSON.parse(sessionData);
-      
+
       // Prüfen ob Session abgelaufen
       if (new Date(session.expires) < new Date()) {
         await r.del(`${SESSION_PREFIX}${sessionToken}`);
         return null;
       }
 
-      const user = await this.getUser!(session.userId);
-      if (!user) return null;
+      // Inline getUser (this-Kontext funktioniert nicht in Auth.js)
+      const userData = await r.get(`${USER_PREFIX}${session.userId}`);
+      if (!userData) return null;
+      const userAccount: UserAccount = JSON.parse(userData);
+      const user: AdapterUser = {
+        id: userAccount.id,
+        email: userAccount.email,
+        emailVerified: null,
+        name: userAccount.name,
+        image: userAccount.image || null,
+      };
 
       return {
         session: {
@@ -330,7 +359,11 @@ export async function getFullUserAccount(userId: string): Promise<UserAccount | 
   const r = await getRedis();
   const data = await r.get(`${USER_PREFIX}${userId}`);
   if (!data) return null;
-  return JSON.parse(data);
+  const user = JSON.parse(data);
+  // Date-Strings zu Date-Objekten konvertieren
+  if (user.createdAt) user.createdAt = new Date(user.createdAt);
+  if (user.lastLoginAt) user.lastLoginAt = new Date(user.lastLoginAt);
+  return user;
 }
 
 // Hilfsfunktion: User Settings updaten

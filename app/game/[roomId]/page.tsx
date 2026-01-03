@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useGameStore, loadPlayerFromStorage } from '@/lib/store';
 import { getPusherClient, EVENTS, roomChannel, subscribeToChannel, unsubscribeFromChannel } from '@/lib/pusher';
@@ -53,6 +53,7 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(false); // Für sofortiges Button-Feedback
   const [roomNotFound, setRoomNotFound] = useState(false); // Raum existiert nicht
   const [linkCopied, setLinkCopied] = useState(false); // Feedback für Link kopiert
+  const skipErgebnisReloadRef = useRef(false); // Verhindert Reload nach "Neue Runde" bis neues RUNDE_ENDE
 
   // Bayerische Sprachausgabe
   const { speakAnsage, speakStichGewonnen, speakMitspielerReaktion, ensureAudioReady } = useBavarianSpeech();
@@ -102,6 +103,27 @@ export default function GamePage() {
       setLastGameId(currentGameId);
     }
   }, [gameState, lastGameId]);
+
+  // Ergebnis aus GameState laden wenn vorhanden (für späte Joiner)
+  useEffect(() => {
+    if (!gameState) return;
+
+    // Skip-Flag zurücksetzen wenn neues Spiel begonnen hat (nicht mehr runde-ende)
+    if (gameState.phase !== 'runde-ende' && skipErgebnisReloadRef.current) {
+      console.log('[Client] Neues Spiel erkannt, Skip-Flag zurückgesetzt');
+      skipErgebnisReloadRef.current = false;
+    }
+
+    if (gameState.phase === 'runde-ende' && gameState.ergebnis && !ergebnis) {
+      // Prüfen ob wir gerade "Neue Runde" geklickt haben
+      if (skipErgebnisReloadRef.current) {
+        console.log('[Client] Ergebnis-Reload übersprungen (Neue Runde in Bearbeitung)');
+        return;
+      }
+      console.log('[Client] Ergebnis aus GameState geladen:', gameState.ergebnis);
+      setErgebnis(gameState.ergebnis);
+    }
+  }, [gameState, ergebnis]);
 
   // Animation-Flag zurücksetzen wenn Animation nicht mehr gezeigt werden sollte
   // (z.B. nach State-Sync wenn schon Entscheidungen getroffen wurden)
@@ -358,6 +380,8 @@ export default function GamePage() {
 
     const handleRundeEnde = ({ ergebnis: e }: { ergebnis: SpielErgebnis }) => {
       console.log('[Client] RUNDE_ENDE Event empfangen:', e);
+      // Skip-Flag zurücksetzen damit dieses neue Ergebnis angezeigt wird
+      skipErgebnisReloadRef.current = false;
       setErgebnis(e);
     };
 
@@ -625,7 +649,9 @@ export default function GamePage() {
 
   // Karte spielen
   const handleCardPlay = useCallback((karteId: string) => {
+    if (isLoading) return; // Verhindere Doppelklicks
     hapticMedium(); // Haptisches Feedback
+    setIsLoading(true);
     ensureAudioReady();
     setSelectedCard(null);
     setPreSelectedCard(null);
@@ -633,8 +659,11 @@ export default function GamePage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'spielzug', roomId, playerId, karteId }),
-    }).then(() => reloadGameState());
-  }, [roomId, playerId, setSelectedCard, ensureAudioReady]);
+    }).finally(() => {
+      reloadGameState();
+      setIsLoading(false);
+    });
+  }, [roomId, playerId, setSelectedCard, ensureAudioReady, isLoading]);
 
   // Auto-Play: Wenn ich am Zug bin und eine Karte vorausgewählt habe
   useEffect(() => {
@@ -667,6 +696,8 @@ export default function GamePage() {
   // Neue Runde
   const handleNeueRunde = async () => {
     console.log('[Client] Neue Runde starten...');
+    // Reload des alten Ergebnisses verhindern bis neues Spiel startet
+    skipErgebnisReloadRef.current = true;
     setErgebnis(null);
     setIsCollecting(false);
     setSelectedCard(null);
@@ -729,7 +760,7 @@ export default function GamePage() {
     const canStart = waitingRoom.spieler.length === 4 && allReady;
 
     return (
-      <main className="min-h-screen p-4">
+      <main className="min-h-screen p-4 safe-area-top">
         {/* Verbindungs-Indikator */}
         <ConnectionIndicator />
 
@@ -915,14 +946,22 @@ export default function GamePage() {
 
     return (
       <main
-        className="h-dvh max-h-dvh p-0 flex flex-col overflow-hidden"
+        className="h-dvh max-h-dvh p-0 flex flex-col overflow-hidden safe-area-top"
         style={{ touchAction: 'manipulation' }}
       >
-        {/* Verbindungs-Indikator */}
-        <ConnectionIndicator />
+        {/* Header mit Exit-Button - z-[60] damit über Modalen (z-50) */}
+        <div className="flex justify-between items-center px-2 py-1 z-[60] relative">
+          <ConnectionIndicator />
+          <button
+            onClick={leaveRoom}
+            className="text-xs px-3 py-2 rounded bg-gray-800/90 text-gray-300 hover:text-white hover:bg-red-800 transition-colors min-w-[44px] min-h-[44px]"
+          >
+            ✕ Verlassen
+          </button>
+        </div>
 
-        {/* Spieltisch - füllt verfügbaren Platz */}
-        <div className="flex-1 min-h-0 flex items-center justify-center relative p-1">
+        {/* Spieltisch - füllt verfügbaren Platz, z-[41] damit Karten über Bottom-Sheet-Backdrop (z-40) sichtbar */}
+        <div className="flex-1 min-h-0 flex items-center justify-center relative p-1 z-[41]">
           <Table
             state={gameState}
             myPlayerId={playerId}
@@ -963,8 +1002,6 @@ export default function GamePage() {
           <ScoreBoard
             ergebnis={ergebnis}
             spieler={gameState.spieler}
-            spielmacherId={gameState.spielmacher!}
-            partnerId={gameState.partner}
             playerId={playerId}
             playerName={playerName || undefined}
             onNeueRunde={handleNeueRunde}
@@ -986,14 +1023,6 @@ export default function GamePage() {
             </button>
           </div>
         )}
-
-        {/* Verlassen-Button - größeres Touch-Target */}
-        <button
-          onClick={leaveRoom}
-          className="fixed top-2 right-2 btn btn-secondary text-sm px-3 py-2 min-w-[44px] min-h-[44px] opacity-70 hover:opacity-100 active:opacity-100"
-        >
-          Verlassen
-        </button>
 
         {/* Push-to-Talk Button */}
         <VoiceButton

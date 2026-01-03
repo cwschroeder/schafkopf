@@ -156,8 +156,13 @@ export async function getRoom(roomId: string): Promise<Raum | undefined> {
 }
 
 export async function getAllRooms(): Promise<Raum[]> {
+  const MAX_AGE_MS = 60 * 60 * 1000; // 1 Stunde
+  const now = Date.now();
+
   if (isLocal) {
-    return Array.from(localRooms.values()).filter(r => r.status !== 'laeuft');
+    return Array.from(localRooms.values()).filter(r =>
+      r.status !== 'laeuft' && (now - (r.erstelltAm || 0)) < MAX_AGE_MS
+    );
   }
 
   const r = await getRedis();
@@ -165,15 +170,30 @@ export async function getAllRooms(): Promise<Raum[]> {
   if (!roomIds || roomIds.length === 0) return [];
 
   const rooms: Raum[] = [];
+  const expiredIds: string[] = [];
+
   for (const id of roomIds) {
     const data = await r.get(`${ROOM_PREFIX}${id}`);
     if (data) {
       const room = JSON.parse(data) as Raum;
-      if (room.status !== 'laeuft') {
+      const age = now - (room.erstelltAm || 0);
+      // Nur nicht-laufende und nicht zu alte Räume anzeigen
+      if (room.status !== 'laeuft' && age < MAX_AGE_MS) {
         rooms.push(room);
+      } else if (age >= MAX_AGE_MS) {
+        expiredIds.push(id);
       }
+    } else {
+      // Raum existiert nicht mehr in Redis, aus Liste entfernen
+      expiredIds.push(id);
     }
   }
+
+  // Alte/gelöschte Räume aus der Liste entfernen
+  if (expiredIds.length > 0) {
+    await r.sRem(ROOMS_LIST_KEY, expiredIds);
+  }
+
   return rooms;
 }
 

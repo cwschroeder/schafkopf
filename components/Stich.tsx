@@ -55,12 +55,13 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Gewinner-Position für Einsammel-Animation berechnen
+  // Gewinner-Position für Einsammel-Animation berechnen (weiter raus für deutlichere Animation)
   const getCollectPosition = (gewinnerId: string): { x: number; y: number } => {
     const gewinnerIndex = spieler.findIndex(s => s.id === gewinnerId);
     const relativ = (gewinnerIndex - myPosition + 4) % 4;
-    const dist = isMobile ? 100 : 150;
-    const distX = isMobile ? 120 : 180;
+    // Größere Distanz für deutlichere Animation
+    const dist = isMobile ? 140 : 200;
+    const distX = isMobile ? 160 : 240;
     const positions = {
       0: { x: 0, y: dist },      // bottom (ich)
       1: { x: distX, y: 0 },     // right
@@ -119,13 +120,15 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
         const currentScale = isAnimated ? 1 : 0.8;
         const currentOpacity = isAnimated ? 1 : 0;
 
-        // Collect-Animation: Karten fliegen zum Gewinner
+        // Collect-Animation: Karten fliegen zum Gewinner mit Glow-Effekt
         const collectPos = stich.gewinner ? getCollectPosition(stich.gewinner) : { x: 0, y: 0 };
         const collectX = collecting ? collectPos.x : currentX;
         const collectY = collecting ? collectPos.y : currentY;
-        const collectRotation = collecting ? (index * 15 - 20) : currentRotation;
-        const collectScale = collecting ? 0.4 : currentScale;
-        const collectOpacity = collecting ? 0 : currentOpacity;
+        // Karten drehen sich beim Sammeln und stapeln sich
+        const collectRotation = collecting ? (index * 8 - 12) : currentRotation;
+        const collectScale = collecting ? 0.5 : currentScale;
+        // Langsamer ausblenden für sichtbarere Animation
+        const collectOpacity = collecting ? 0.3 : currentOpacity;
 
         return (
           <div
@@ -135,9 +138,14 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
               transform: `translate(-50%, -50%) translate(${collectX}px, ${collectY}px) rotate(${collectRotation}deg) scale(${collectScale})`,
               opacity: collectOpacity,
               transition: collecting
-                ? 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                ? 'all 0.7s cubic-bezier(0.4, 0, 0.6, 1)'  // Längere, smoothere Animation
                 : 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              filter: isGewinner && !collecting ? 'drop-shadow(0 0 12px rgba(212, 175, 55, 0.9))' : 'none',
+              // Goldener Glow beim Einsammeln, sonst nur beim Gewinner
+              filter: collecting
+                ? 'drop-shadow(0 0 20px rgba(212, 175, 55, 0.9)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.5))'
+                : isGewinner && !collecting
+                  ? 'drop-shadow(0 0 12px rgba(212, 175, 55, 0.9))'
+                  : 'none',
               zIndex: index + 1,
             }}
           >
@@ -225,7 +233,7 @@ export function LetzterStich({
       onClick={onClose}
     >
       <div
-        className="rounded-2xl p-6 flex flex-col items-center gap-4 max-w-sm mx-4"
+        className="rounded-2xl p-6 flex flex-col items-center gap-4 max-w-md mx-4"
         style={{
           background: 'linear-gradient(135deg, #3e2723 0%, #4e342e 100%)',
           border: '2px solid rgba(139,90,43,0.5)',
@@ -244,44 +252,72 @@ export function LetzterStich({
           Letzter Stich
         </h3>
 
-        <div className="flex gap-3">
-          {stich.karten.map(k => {
+        {/* Karten in Spielreihenfolge mit Nummer */}
+        <div className="flex gap-2 sm:gap-3">
+          {stich.karten.map((k, index) => {
             const istGewinner = k.spielerId === stich.gewinner;
+            const kartenSpieler = spieler.find(s => s.id === k.spielerId);
             return (
               <div
                 key={k.karte.id}
                 className="flex flex-col items-center gap-1"
-                style={{
-                  filter: istGewinner ? 'drop-shadow(0 0 6px rgba(212,175,55,0.6))' : 'none',
-                }}
               >
-                <Card karte={k.karte} size="sm" />
+                {/* Spielreihenfolge-Nummer */}
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mb-1"
+                  style={{
+                    background: istGewinner
+                      ? 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)'
+                      : 'rgba(100,100,100,0.5)',
+                    color: istGewinner ? '#1a1a1a' : '#ccc',
+                  }}
+                >
+                  {index + 1}
+                </div>
+                {/* Karte */}
+                <div
+                  style={{
+                    filter: istGewinner ? 'drop-shadow(0 0 8px rgba(212,175,55,0.8))' : 'none',
+                    transform: istGewinner ? 'scale(1.05)' : 'scale(1)',
+                  }}
+                >
+                  <Card karte={k.karte} size="sm" />
+                </div>
+                {/* Spielername */}
                 <span
-                  className="text-xs px-2 py-0.5 rounded"
+                  className="text-xs px-2 py-0.5 rounded text-center max-w-[60px] truncate"
                   style={{
                     background: istGewinner
                       ? 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)'
                       : 'rgba(0,0,0,0.3)',
                     color: istGewinner ? '#1a1a1a' : '#e5d3b3',
+                    fontWeight: istGewinner ? 'bold' : 'normal',
                   }}
                 >
-                  {spieler.find(s => s.id === k.spielerId)?.name}
+                  {kartenSpieler?.name?.slice(0, 8)}
                 </span>
               </div>
             );
           })}
         </div>
 
+        {/* Gewinner-Anzeige */}
         {gewinner && (
-          <p className="text-amber-300 font-semibold flex items-center gap-2">
-            <span>👑</span>
-            {gewinner.name} gewinnt!
-          </p>
+          <div
+            className="flex items-center gap-2 px-4 py-2 rounded-lg"
+            style={{
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(184,134,11,0.2) 100%)',
+              border: '1px solid rgba(212,175,55,0.5)',
+            }}
+          >
+            <span className="text-xl">👑</span>
+            <span className="text-amber-300 font-bold">{gewinner.name} sticht!</span>
+          </div>
         )}
 
         <button
           onClick={onClose}
-          className="btn btn-secondary mt-2"
+          className="btn btn-secondary mt-2 px-6"
         >
           Schließen
         </button>

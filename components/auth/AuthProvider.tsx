@@ -8,6 +8,8 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
+  // basePath muss den Next.js basePath + /api/auth enthalten
+  // weil Client-Requests an /schafkopf/api/auth/... gehen
   return (
     <SessionProvider basePath="/schafkopf/api/auth">
       {children}

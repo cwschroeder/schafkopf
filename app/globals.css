@@ -4,8 +4,8 @@
 
 :root {
   /* Adaptive Kartengröße mit clamp für optimale Mobile-Darstellung */
-  --card-width: clamp(52px, 15vw, 70px);
-  --card-height: clamp(78px, 22.5vw, 105px);
+  --card-width: clamp(60px, 18vw, 80px);
+  --card-height: clamp(90px, 27vw, 120px);
 
   /* Touch-Target Mindestgröße */
   --touch-target-min: 44px;
@@ -14,8 +14,8 @@
 /* Sehr kleine Screens (iPhone SE, etc.) */
 @media (max-width: 380px) {
   :root {
-    --card-width: clamp(48px, 14vw, 58px);
-    --card-height: clamp(72px, 21vw, 87px);
+    --card-width: clamp(52px, 16vw, 65px);
+    --card-height: clamp(78px, 24vw, 97px);
   }
 }
 
@@ -613,4 +613,139 @@ html, body {
   animation: confetti-fall 3s ease-in-out forwards;
   pointer-events: none;
   z-index: 100;
+}
+
+/* ==================== */
+/* DARK MODE SUPPORT    */
+/* ==================== */
+
+/* Standard (Light) Theme Variablen */
+:root {
+  --bg-primary: #1a241e;
+  --bg-secondary: #3e2723;
+  --bg-tertiary: #4e342e;
+  --text-primary: #e5d3b3;
+  --text-secondary: #d4af37;
+  --text-muted: rgba(229, 211, 179, 0.7);
+  --border-color: rgba(139, 90, 43, 0.5);
+  --accent-gold: #d4af37;
+  --accent-gold-light: #e5c158;
+}
+
+/* Dark Mode Theme */
+[data-theme="dark"] {
+  --bg-primary: #0d1210;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #252525;
+  --text-primary: #e0e0e0;
+  --text-secondary: #9ca3af;
+  --text-muted: rgba(156, 163, 175, 0.7);
+  --border-color: rgba(75, 85, 99, 0.5);
+  --accent-gold: #f59e0b;
+  --accent-gold-light: #fbbf24;
+}
+
+/* Dark Mode Body */
+[data-theme="dark"] body {
+  background:
+    linear-gradient(180deg,
+      rgba(13, 18, 16, 0.98) 0%,
+      rgba(10, 15, 13, 0.95) 50%,
+      rgba(13, 18, 16, 0.98) 100%
+    );
+  background-color: var(--bg-primary);
+}
+
+/* Dark Mode Card Styling */
+[data-theme="dark"] .card {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .card.selected {
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.6),
+    0 0 0 3px var(--accent-gold),
+    0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+/* Dark Mode Buttons */
+[data-theme="dark"] .btn-primary {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0d1210;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  color: #e5e7eb;
+  border: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+/* Dark Mode Inputs */
+[data-theme="dark"] input[type="text"] {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 1px solid rgba(75, 85, 99, 0.5);
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] input[type="text"]:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] input[type="text"]::placeholder {
+  color: rgba(156, 163, 175, 0.5);
+}
+
+/* Dark Mode Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+/* Dark Mode Title */
+[data-theme="dark"] .schafkopf-title {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Dark Mode Skeleton */
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(75, 85, 99, 0.2) 0%,
+    rgba(75, 85, 99, 0.4) 50%,
+    rgba(75, 85, 99, 0.2) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Dark Mode Spinner */
+[data-theme="dark"] .spinner {
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-top-color: #f59e0b;
+}
+
+/* Dark Mode Bottom Sheet */
+[data-theme="dark"] .bottom-sheet {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+  border-top-color: rgba(75, 85, 99, 0.5) !important;
 }

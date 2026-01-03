@@ -1,21 +1,48 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AudioRecorder from '@/components/settings/AudioRecorder';
+
+// Admin-Email für Audio-Verwaltung
+const ADMIN_EMAIL = 'christian.w.schroeder@gmail.com';
 
 // BasePath für API-Aufrufe
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+type VoiceKey = 'm1' | 'm2' | 'f1' | 'f2';
 
 interface Phrase {
   text: string;
   speech: string;
   originalSpeech: string;
   category: string;
+  // 4 Stimmen
+  audioM1: string | null;
+  audioM2: string | null;
+  audioF1: string | null;
+  audioF2: string | null;
+  hasAudioM1: boolean;
+  hasAudioM2: boolean;
+  hasAudioF1: boolean;
+  hasAudioF2: boolean;
+  // Legacy (Abwärtskompatibilität)
   audioM: string | null;
   audioF: string | null;
   hasAudioM: boolean;
   hasAudioF: boolean;
+  custom?: boolean;
 }
+
+// Voice-Key Labels
+const VOICE_LABELS: Record<VoiceKey, { label: string; color: string }> = {
+  m1: { label: 'M1', color: 'green' },
+  m2: { label: 'M2', color: 'emerald' },
+  f1: { label: 'F1', color: 'pink' },
+  f2: { label: 'F2', color: 'purple' },
+};
 
 interface PhrasesResponse {
   total: number;
@@ -56,15 +83,32 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function AudioSettingsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [data, setData] = useState<PhrasesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
   const [editedSpeech, setEditedSpeech] = useState<Record<string, string>>({});
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [selectedVoice, setSelectedVoice] = useState<'echo' | 'nova'>('echo');
+  const [selectedVoice, setSelectedVoice] = useState<VoiceKey>('m1');
   const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [savingTTS, setSavingTTS] = useState<Record<string, boolean>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showNewPhraseForm, setShowNewPhraseForm] = useState(false);
+  const [newPhrase, setNewPhrase] = useState({ text: '', speech: '', category: 'stich-gewonnen' });
+  const [addingPhrase, setAddingPhrase] = useState(false);
+  const [recordingPhrase, setRecordingPhrase] = useState<Phrase | null>(null);
+
+  // Nur Admin darf diese Seite sehen
+  const isAdmin = session?.user?.email === ADMIN_EMAIL;
+
+  // Redirect wenn nicht Admin
+  useEffect(() => {
+    if (status === 'authenticated' && !isAdmin) {
+      router.push('/settings');
+    }
+  }, [status, isAdmin, router]);
 
   // Daten laden
   useEffect(() => {
@@ -98,8 +142,8 @@ export default function AudioSettingsPage() {
   }
 
   // Audio generieren
-  async function generateAudio(phrase: Phrase, voice: 'echo' | 'nova') {
-    const key = `${phrase.originalSpeech}-${voice}`;
+  async function generateAudio(phrase: Phrase, voiceKey: VoiceKey) {
+    const key = `${phrase.originalSpeech}-${voiceKey}`;
     setGenerating(prev => ({ ...prev, [key]: true }));
 
     try {
@@ -108,7 +152,7 @@ export default function AudioSettingsPage() {
       const res = await fetch(`${BASE_PATH}/api/audio/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: speechText, voice }),
+        body: JSON.stringify({ text: speechText, voiceKey }),
       });
 
       if (!res.ok) {
@@ -122,14 +166,14 @@ export default function AudioSettingsPage() {
       playAudio(result.audio);
 
       // Manifest aktualisieren
-      const isMale = voice === 'echo';
       await fetch(`${BASE_PATH}/api/audio/phrases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           originalSpeech: phrase.originalSpeech,
           speech: speechText,
-          [isMale ? 'audioM' : 'audioF']: result.filename,
+          voiceKey,
+          audioFile: result.filename,
         }),
       });
 
@@ -139,6 +183,45 @@ export default function AudioSettingsPage() {
       alert(e instanceof Error ? e.message : 'Fehler bei Generierung');
     } finally {
       setGenerating(prev => ({ ...prev, [key]: false }));
+    }
+  }
+
+  // TTS-Text speichern
+  async function saveTTSText(phrase: Phrase) {
+    const speechText = editedSpeech[phrase.originalSpeech];
+    if (!speechText || speechText === phrase.speech) {
+      return; // Nichts zu speichern
+    }
+
+    setSavingTTS(prev => ({ ...prev, [phrase.originalSpeech]: true }));
+
+    try {
+      const res = await fetch(`${BASE_PATH}/api/audio/phrases`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalSpeech: phrase.originalSpeech,
+          speech: speechText,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Speichern fehlgeschlagen');
+      }
+
+      // Daten neu laden
+      await loadPhrases();
+      // Edited state für diesen Eintrag löschen (ist jetzt gespeichert)
+      setEditedSpeech(prev => {
+        const next = { ...prev };
+        delete next[phrase.originalSpeech];
+        return next;
+      });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Fehler beim Speichern');
+    } finally {
+      setSavingTTS(prev => ({ ...prev, [phrase.originalSpeech]: false }));
     }
   }
 
@@ -177,6 +260,62 @@ export default function AudioSettingsPage() {
     await loadPhrases();
   }
 
+  // Neuen Spruch hinzufügen
+  async function addNewPhrase() {
+    if (!newPhrase.text.trim() || !newPhrase.speech.trim()) {
+      alert('Bitte Text und TTS-Text eingeben');
+      return;
+    }
+
+    setAddingPhrase(true);
+    try {
+      const res = await fetch(`${BASE_PATH}/api/audio/phrases`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPhrase),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Fehler beim Hinzufügen');
+      }
+
+      // Reset und Daten neu laden
+      setNewPhrase({ text: '', speech: '', category: newPhrase.category });
+      setShowNewPhraseForm(false);
+      await loadPhrases();
+
+      // Kategorie expandieren
+      setExpandedCategories(prev => new Set([...prev, newPhrase.category]));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Fehler beim Hinzufügen');
+    } finally {
+      setAddingPhrase(false);
+    }
+  }
+
+  // Spruch löschen
+  async function deletePhrase(speech: string) {
+    if (!confirm('Spruch wirklich löschen?')) return;
+
+    try {
+      const res = await fetch(`${BASE_PATH}/api/audio/phrases`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ speech }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Fehler beim Löschen');
+      }
+
+      await loadPhrases();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Fehler beim Löschen');
+    }
+  }
+
   // Kategorie expandieren/kollabieren
   function toggleCategory(cat: string) {
     setExpandedCategories(prev => {
@@ -188,6 +327,24 @@ export default function AudioSettingsPage() {
       }
       return next;
     });
+  }
+
+  // Warten auf Auth-Check
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex items-center justify-center">
+        <div className="text-white text-xl">Lade...</div>
+      </div>
+    );
+  }
+
+  // Nicht eingeloggt oder kein Admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-950 flex items-center justify-center">
+        <div className="text-red-400 text-xl">Kein Zugriff</div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -241,6 +398,69 @@ export default function AudioSettingsPage() {
           </div>
         </div>
 
+        {/* Neuer Spruch hinzufügen */}
+        {showNewPhraseForm ? (
+          <div className="bg-green-800/70 rounded-lg p-4 mb-4 border border-green-600">
+            <h3 className="font-semibold mb-3">Neuen Spruch hinzufügen</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-green-300 mb-1">Anzeige-Text</label>
+                <input
+                  type="text"
+                  value={newPhrase.text}
+                  onChange={e => setNewPhrase(prev => ({ ...prev, text: e.target.value }))}
+                  placeholder="z.B. Des is ja a Wahnsinn!"
+                  className="w-full bg-green-900/50 border border-green-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-green-300 mb-1">TTS-Text (Aussprache)</label>
+                <input
+                  type="text"
+                  value={newPhrase.speech}
+                  onChange={e => setNewPhrase(prev => ({ ...prev, speech: e.target.value }))}
+                  placeholder="z.B. Des is ja a Wahnsinn!"
+                  className="w-full bg-green-900/50 border border-green-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-green-300 mb-1">Kategorie</label>
+                <select
+                  value={newPhrase.category}
+                  onChange={e => setNewPhrase(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full bg-green-900/50 border border-green-600 rounded px-3 py-2 text-white"
+                >
+                  {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={addNewPhrase}
+                  disabled={addingPhrase}
+                  className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 px-4 py-2 rounded font-semibold transition-colors"
+                >
+                  {addingPhrase ? 'Füge hinzu...' : 'Hinzufügen'}
+                </button>
+                <button
+                  onClick={() => setShowNewPhraseForm(false)}
+                  className="px-4 py-2 rounded border border-green-600 hover:bg-green-700 transition-colors"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNewPhraseForm(true)}
+            className="w-full bg-green-700 hover:bg-green-600 px-4 py-3 rounded-lg font-semibold mb-4 transition-colors flex items-center justify-center gap-2"
+          >
+            <span className="text-xl">+</span> Neuen Spruch hinzufügen
+          </button>
+        )}
+
         {/* Kategorien */}
         <div className="space-y-4">
           {data?.grouped && Object.entries(data.grouped).map(([category, phrases]) => {
@@ -284,7 +504,12 @@ export default function AudioSettingsPage() {
                           {/* Text-Anzeige */}
                           <div className="flex items-start gap-3">
                             <div className="flex-1">
-                              <div className="text-amber-200 font-medium">{phrase.text}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-amber-200 font-medium">{phrase.text}</span>
+                                {phrase.custom && (
+                                  <span className="text-xs bg-blue-600/50 px-1.5 py-0.5 rounded">custom</span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2 mt-1">
                                 <input
                                   type="text"
@@ -363,6 +588,32 @@ export default function AudioSettingsPage() {
                                   </button>
                                 </div>
                               </div>
+
+                              {/* Aufnahme-Button */}
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-xs text-amber-400">Rec</span>
+                                <button
+                                  onClick={() => setRecordingPhrase(phrase)}
+                                  className="w-8 h-8 bg-amber-800 hover:bg-amber-700 rounded flex items-center justify-center transition-colors"
+                                  title="Eigene Aufnahme"
+                                >
+                                  🎤
+                                </button>
+                              </div>
+
+                              {/* Löschen-Button für Custom-Sprüche */}
+                              {phrase.custom && (
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="text-xs text-red-400">×</span>
+                                  <button
+                                    onClick={() => deletePhrase(phrase.originalSpeech)}
+                                    className="w-8 h-8 bg-red-700 hover:bg-red-600 rounded flex items-center justify-center transition-colors"
+                                    title="Spruch löschen"
+                                  >
+                                    🗑
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -376,6 +627,18 @@ export default function AudioSettingsPage() {
         </div>
       </div>
       </div>
+
+      {/* Audio-Recorder Modal */}
+      {recordingPhrase && (
+        <AudioRecorder
+          phrase={recordingPhrase}
+          onClose={() => setRecordingPhrase(null)}
+          onSaved={() => {
+            loadPhrases();
+            setRecordingPhrase(null);
+          }}
+        />
+      )}
     </div>
   );
 }

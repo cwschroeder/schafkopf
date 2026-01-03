@@ -57,7 +57,7 @@ export default function LoginButton({ provider, className = '' }: LoginButtonPro
     hapticTap();
     setIsLoading(true);
     try {
-      await signIn(provider, { callbackUrl: '/schafkopf/lobby' });
+      await signIn(provider, { callbackUrl: '/lobby' });
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);

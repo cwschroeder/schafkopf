@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useGameStore, loadPlayerFromStorage, savePlayerToStorage } from '@/lib/store';
+import UserMenu from '@/components/auth/UserMenu';
+import { hapticTap } from '@/lib/haptics';
 
 export default function Home() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const { playerId, playerName, setPlayer } = useGameStore();
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Authentifizierter User?
+  const isAuthenticated = !!session?.user;
+  const authUserName = session?.user?.name || '';
 
   useEffect(() => {
     // Prüfen ob bereits ein Spieler gespeichert ist
@@ -16,9 +24,12 @@ export default function Home() {
     if (stored) {
       setPlayer(stored.id, stored.name);
       setName(stored.name);
+    } else if (isAuthenticated && authUserName) {
+      // Für eingeloggte User: Name aus Session verwenden
+      setName(authUserName);
     }
     setIsLoading(false);
-  }, [setPlayer]);
+  }, [setPlayer, isAuthenticated, authUserName]);
 
   const handleStart = () => {
     if (!name.trim()) return;
@@ -29,7 +40,7 @@ export default function Home() {
     router.push('/lobby');
   };
 
-  if (isLoading) {
+  if (isLoading || sessionStatus === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Laden...</div>
@@ -38,7 +49,12 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+      {/* User Menu oben rechts */}
+      <div className="absolute top-4 right-4">
+        <UserMenu />
+      </div>
+
       <div className="max-w-md w-full space-y-8">
         {/* Logo / Titel */}
         <div className="text-center">
@@ -62,9 +78,15 @@ export default function Home() {
 
         {/* Name-Eingabe */}
         <div className="bg-gray-800/50 backdrop-blur rounded-xl p-6 space-y-4">
+          {isAuthenticated && (
+            <div className="flex items-center gap-2 text-sm text-green-400 bg-green-900/30 rounded-lg px-3 py-2">
+              <span>✓</span>
+              <span>Eingeloggt als <strong>{authUserName}</strong></span>
+            </div>
+          )}
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2">
-              Dein Name
+              {isAuthenticated ? 'Spielername (kann abweichen)' : 'Dein Name'}
             </label>
             <input
               id="name"
@@ -72,7 +94,7 @@ export default function Home() {
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleStart()}
-              placeholder="z.B. Sepp"
+              placeholder={isAuthenticated ? authUserName : 'z.B. Sepp'}
               className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600
                          focus:border-amber-500 focus:ring-1 focus:ring-amber-500
                          outline-none transition-colors text-white placeholder-gray-400"
@@ -81,7 +103,10 @@ export default function Home() {
           </div>
 
           <button
-            onClick={handleStart}
+            onClick={() => {
+              hapticTap();
+              handleStart();
+            }}
             disabled={!name.trim()}
             className="w-full btn btn-primary py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >

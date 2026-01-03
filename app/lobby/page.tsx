@@ -6,10 +6,17 @@ import { useGameStore, loadPlayerFromStorage } from '@/lib/store';
 import { getPusherClient, EVENTS, lobbyChannel, subscribeToChannel, unsubscribeFromChannel } from '@/lib/pusher';
 import { Raum } from '@/lib/schafkopf/types';
 import { apiUrl } from '@/lib/api';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { ConnectionIndicator } from '@/components/ConnectionIndicator';
+import UserMenu from '@/components/auth/UserMenu';
+import LinkLegacyPrompt from '@/components/auth/LinkLegacyPrompt';
+import InstallPWA from '@/components/InstallPWA';
+import { hapticTap } from '@/lib/haptics';
 
 export default function Lobby() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { playerId, playerName, setPlayer, rooms, setRooms, addRoom, updateRoom, removeRoom, setCurrentRoom } = useGameStore();
 
   const [newRoomName, setNewRoomName] = useState('');
@@ -18,6 +25,12 @@ export default function Lobby() {
   const [joinCode, setJoinCode] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinError, setJoinError] = useState('');
+  const [linkPromptDismissed, setLinkPromptDismissed] = useState(false);
+
+  // Prüfen ob LinkLegacyPrompt angezeigt werden soll
+  const showLinkPrompt = session && playerId?.startsWith('p_') && !linkPromptDismissed &&
+    !localStorage.getItem(`schafkopf-link-dismissed-${playerId}`) &&
+    !localStorage.getItem(`schafkopf-link-done-${playerId}`);
 
   // Spieler laden
   useEffect(() => {
@@ -155,7 +168,7 @@ export default function Lobby() {
   }
 
   return (
-    <main className="min-h-screen p-4">
+    <main className="min-h-screen p-4 safe-area-top">
       {/* Verbindungs-Indikator */}
       <ConnectionIndicator />
 
@@ -164,15 +177,37 @@ export default function Lobby() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-amber-400">Lobby</h1>
-            <p className="text-gray-400 text-sm">Hallo, {playerName}!</p>
+            <p className="text-gray-400 text-sm">
+              Hallo, {session?.user?.name || playerName}!
+            </p>
           </div>
-          <button
-            onClick={() => router.push('/')}
-            className="btn btn-secondary text-sm"
-          >
-            Zurück
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/leaderboard"
+              onClick={() => hapticTap()}
+              className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
+              title="Leaderboard"
+            >
+              🏆
+            </Link>
+            <UserMenu />
+            <button
+              onClick={() => router.push('/')}
+              className="btn btn-secondary text-sm"
+            >
+              Zurück
+            </button>
+          </div>
         </div>
+
+        {/* Link Legacy Prompt */}
+        {showLinkPrompt && playerId && (
+          <LinkLegacyPrompt
+            legacyPlayerId={playerId}
+            onLinked={() => setLinkPromptDismissed(true)}
+            onDismiss={() => setLinkPromptDismissed(true)}
+          />
+        )}
 
         {/* Neuen Raum erstellen */}
         {showCreateForm ? (
@@ -272,19 +307,28 @@ export default function Lobby() {
             </div>
           ) : (
             <div className="space-y-2">
-              {rooms.map(room => (
-                <RoomCard
-                  key={room.id}
-                  room={room}
-                  playerId={playerId}
-                  playerName={playerName || ''}
-                  onJoin={async () => {
-                    const error = await joinRoom(room.id);
-                    if (error) alert(error);
-                  }}
-                  isMyRoom={room.spieler.some(s => s.id === playerId)}
-                />
-              ))}
+              {rooms.map(room => {
+                const isMyRoom = room.spieler.some(s => s.id === playerId);
+                return (
+                  <RoomCard
+                    key={room.id}
+                    room={room}
+                    playerId={playerId}
+                    playerName={playerName || ''}
+                    onJoin={async () => {
+                      if (isMyRoom) {
+                        // Bereits im Raum -> direkt zum Spiel
+                        setCurrentRoom(room);
+                        router.push(`/game/${room.id}`);
+                      } else {
+                        const error = await joinRoom(room.id);
+                        if (error) alert(error);
+                      }
+                    }}
+                    isMyRoom={isMyRoom}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
@@ -295,6 +339,11 @@ export default function Lobby() {
             Kurzes Blatt (24 Karten) • Sauspiel 10 Ct • Solo 20 Ct •
             Fehlende Spieler werden durch KI ersetzt
           </p>
+        </div>
+
+        {/* PWA Install Button */}
+        <div className="flex justify-center">
+          <InstallPWA />
         </div>
       </div>
     </main>

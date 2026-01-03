@@ -6,6 +6,12 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 interface AudioManifestEntry {
   text: string;
   speech: string;
+  // 4 Stimmen
+  m1?: string;
+  m2?: string;
+  f1?: string;
+  f2?: string;
+  // Legacy
   m?: string;
   f?: string;
   category: string;
@@ -99,25 +105,53 @@ export function stopAudio() {
   isPlaying = false;
 }
 
-// Standard-Stimme (kann vom Spieler gesetzt werden)
-let defaultVoice: 'm' | 'f' = 'm';
+// Voice-Typen
+export type VoiceKey = 'm1' | 'm2' | 'f1' | 'f2' | 'm' | 'f';
 
-export function setDefaultVoice(voice: 'm' | 'f') {
+// Standard-Stimme (kann vom Spieler gesetzt werden)
+let defaultVoice: VoiceKey = 'm1';
+
+export function setDefaultVoice(voice: VoiceKey) {
   defaultVoice = voice;
 }
 
-export function getDefaultVoice(): 'm' | 'f' {
+export function getDefaultVoice(): VoiceKey {
   return defaultVoice;
+}
+
+/**
+ * Audio-Datei für Voice-Key ermitteln (mit Fallback-Kette)
+ */
+function getAudioFileForVoice(entry: AudioManifestEntry, voice: VoiceKey): string | null {
+  // Direkt prüfen
+  if (voice === 'm1' && (entry.m1 || entry.m)) return entry.m1 || entry.m || null;
+  if (voice === 'm2' && entry.m2) return entry.m2;
+  if (voice === 'f1' && (entry.f1 || entry.f)) return entry.f1 || entry.f || null;
+  if (voice === 'f2' && entry.f2) return entry.f2;
+
+  // Legacy-Mapping
+  if (voice === 'm') return entry.m1 || entry.m || null;
+  if (voice === 'f') return entry.f1 || entry.f || null;
+
+  // Fallback-Kette: m1 -> m2 -> f1 -> f2 -> m -> f
+  const fallbackOrder: (keyof AudioManifestEntry)[] = ['m1', 'm2', 'f1', 'f2', 'm', 'f'];
+  for (const key of fallbackOrder) {
+    if (entry[key] && typeof entry[key] === 'string') {
+      return entry[key] as string;
+    }
+  }
+
+  return null;
 }
 
 /**
  * Spielt einen bayerischen Spruch ab
  * @param speech Der TTS-Text (z.B. "Wennz!")
- * @param voice Optional: 'm' für männlich, 'f' für weiblich
+ * @param voice Optional: 'm1', 'm2', 'f1', 'f2' oder Legacy 'm', 'f'
  */
 export async function playBavarianAudio(
   speech: string,
-  voice: 'm' | 'f' = defaultVoice
+  voice: VoiceKey = defaultVoice
 ): Promise<void> {
   try {
     const m = await loadManifest();
@@ -128,14 +162,9 @@ export async function playBavarianAudio(
       return;
     }
 
-    const filename = voice === 'm' ? entry.m : entry.f;
+    const filename = getAudioFileForVoice(entry, voice);
     if (!filename) {
-      console.warn(`No ${voice === 'm' ? 'male' : 'female'} audio for:`, speech);
-      // Fallback auf andere Stimme
-      const fallback = voice === 'm' ? entry.f : entry.m;
-      if (fallback) {
-        await playAudioFile(`${BASE_PATH}/audio/${fallback}`);
-      }
+      console.warn(`No audio for voice "${voice}":`, speech);
       return;
     }
 
@@ -148,16 +177,17 @@ export async function playBavarianAudio(
 /**
  * Prüft ob Audio für einen Spruch verfügbar ist
  */
-export async function hasAudio(speech: string, voice?: 'm' | 'f'): Promise<boolean> {
+export async function hasAudio(speech: string, voice?: VoiceKey): Promise<boolean> {
   const m = await loadManifest();
   const entry = m[speech];
   if (!entry) return false;
 
   if (voice) {
-    return voice === 'm' ? !!entry.m : !!entry.f;
+    return !!getAudioFileForVoice(entry, voice);
   }
 
-  return !!entry.m || !!entry.f;
+  // Irgendeine Stimme vorhanden?
+  return !!(entry.m1 || entry.m2 || entry.f1 || entry.f2 || entry.m || entry.f);
 }
 
 /**

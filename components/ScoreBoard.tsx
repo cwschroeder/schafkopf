@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { hapticGewonnen, hapticVerloren } from '@/lib/haptics';
-import { SpielErgebnis, Spieler, Karte } from '@/lib/schafkopf/types';
+import { SpielErgebnis, Spieler, Karte, Farbe } from '@/lib/schafkopf/types';
 import { formatiereBetrag, ergebnisZusammenfassung } from '@/lib/schafkopf/scoring';
 import { AUGEN } from '@/lib/schafkopf/cards';
+import FarbIcon from './FarbIcon';
 
 interface ScoreBoardProps {
   ergebnis: SpielErgebnis;
   spieler: Spieler[];
-  spielmacherId: string;
-  partnerId: string | null;
   playerId: string; // Aktueller Spieler (für Anzeige ob ICH gewonnen habe)
   playerName?: string; // Für Fallback-Match wenn IDs nicht übereinstimmen
   onNeueRunde: () => void;
@@ -20,8 +19,6 @@ interface ScoreBoardProps {
 export default function ScoreBoard({
   ergebnis,
   spieler,
-  spielmacherId,
-  partnerId,
   playerId,
   playerName,
   onNeueRunde,
@@ -29,25 +26,29 @@ export default function ScoreBoard({
 }: ScoreBoardProps) {
   const [showDetails, setShowDetails] = useState(false);
 
+  // spielmacherId und partnerId aus dem Ergebnis lesen (nicht vom aktuellen gameState!)
+  // Das verhindert Bugs wenn nach "Neue Runde" der gameState schon zum neuen Spiel gehört
+  const spielmacherId = ergebnis.spielmacherId;
+  const partnerId = ergebnis.partnerId;
+
   const spielmacher = spieler.find(s => s.id === spielmacherId);
   const partner = partnerId ? spieler.find(s => s.id === partnerId) : null;
 
   // Helper: Augen einer Karte
   const getAugen = (karte: Karte) => AUGEN[karte.wert];
 
-  // Helper: Karte als kurzen String
-  const karteKurz = (karte: Karte) => {
-    const farbenSymbole: Record<string, string> = {
-      eichel: '🌰',
-      gras: '🍀',
-      herz: '❤️',
-      schellen: '🔔',
-    };
-    const wertKurz: Record<string, string> = {
-      '9': '9', '10': '10', 'unter': 'U', 'ober': 'O', 'koenig': 'K', 'ass': 'A',
-    };
-    return `${farbenSymbole[karte.farbe]}${wertKurz[karte.wert]}`;
+  // Helper: Wert als Kurzform
+  const wertKurz: Record<string, string> = {
+    '9': '9', '10': '10', 'unter': 'U', 'ober': 'O', 'koenig': 'K', 'ass': 'A',
   };
+
+  // Helper: Karte als React-Element mit SVG-Icon
+  const KarteKurz = ({ karte }: { karte: Karte }) => (
+    <span className="inline-flex items-center gap-0.5">
+      <FarbIcon farbe={karte.farbe} size={12} />
+      <span>{wertKurz[karte.wert]}</span>
+    </span>
+  );
 
   // Alle Stiche sammeln für Details
   const alleStiche: { karten: Karte[]; gewinner: string; augen: number; team: 'spielmacher' | 'gegner' }[] = [];
@@ -228,8 +229,10 @@ export default function ScoreBoard({
                         : 'rgba(153,27,27,0.2)',
                     }}
                   >
-                    <span className="text-amber-100/70 truncate">
-                      {stich.karten.map(k => karteKurz(k)).join(' ')}
+                    <span className="text-amber-100/70 truncate flex items-center gap-1 flex-wrap">
+                      {stich.karten.map((k, i) => (
+                        <KarteKurz key={i} karte={k} />
+                      ))}
                     </span>
                     <span className="flex items-center gap-1 shrink-0">
                       <span className="text-amber-100/50 text-[10px]">{stich.gewinner}</span>
