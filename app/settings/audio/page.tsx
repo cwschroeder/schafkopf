@@ -230,16 +230,21 @@ export default function AudioSettingsPage() {
     if (!data) return;
 
     const missing = data.phrases.filter(p => {
-      const voice = selectedVoice;
-      return voice === 'echo' ? !p.hasAudioM : !p.hasAudioF;
+      switch (selectedVoice) {
+        case 'm1': return !p.hasAudioM1;
+        case 'm2': return !p.hasAudioM2;
+        case 'f1': return !p.hasAudioF1;
+        case 'f2': return !p.hasAudioF2;
+        default: return false;
+      }
     });
 
     if (missing.length === 0) {
-      alert('Alle Audio-Dateien sind bereits vorhanden!');
+      alert('Alle Audio-Dateien für diese Stimme sind bereits vorhanden!');
       return;
     }
 
-    if (!confirm(`${missing.length} Audio-Dateien generieren? (Kosten: ~$${(missing.length * 0.0001).toFixed(3)})`)) {
+    if (!confirm(`${missing.length} Audio-Dateien für ${VOICE_LABELS[selectedVoice].label} generieren? (Kosten: ~$${(missing.length * 0.015).toFixed(2)})`)) {
       return;
     }
 
@@ -381,11 +386,13 @@ export default function AudioSettingsPage() {
           <div className="flex items-center gap-3">
             <select
               value={selectedVoice}
-              onChange={e => setSelectedVoice(e.target.value as 'echo' | 'nova')}
+              onChange={e => setSelectedVoice(e.target.value as VoiceKey)}
               className="bg-green-800 border border-green-600 rounded px-3 py-2 text-sm"
             >
-              <option value="echo">Echo (männlich)</option>
-              <option value="nova">Nova (weiblich)</option>
+              <option value="m1">M1 - Echo (männlich 1)</option>
+              <option value="m2">M2 - Onyx (männlich 2)</option>
+              <option value="f1">F1 - Nova (weiblich 1)</option>
+              <option value="f2">F2 - Shimmer (weiblich 2)</option>
             </select>
 
             <button
@@ -393,7 +400,7 @@ export default function AudioSettingsPage() {
               disabled={bulkGenerating}
               className="bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 px-4 py-2 rounded font-semibold text-sm transition-colors"
             >
-              {bulkGenerating ? 'Generiere...' : 'Fehlende generieren'}
+              {bulkGenerating ? 'Generiere...' : `Fehlende ${VOICE_LABELS[selectedVoice].label} generieren`}
             </button>
           </div>
         </div>
@@ -465,8 +472,17 @@ export default function AudioSettingsPage() {
         <div className="space-y-4">
           {data?.grouped && Object.entries(data.grouped).map(([category, phrases]) => {
             const isExpanded = expandedCategories.has(category);
-            const hasAllAudio = phrases.every(p => selectedVoice === 'echo' ? p.hasAudioM : p.hasAudioF);
-            const audioCount = phrases.filter(p => selectedVoice === 'echo' ? p.hasAudioM : p.hasAudioF).length;
+            const getHasAudio = (p: Phrase) => {
+              switch (selectedVoice) {
+                case 'm1': return p.hasAudioM1;
+                case 'm2': return p.hasAudioM2;
+                case 'f1': return p.hasAudioF1;
+                case 'f2': return p.hasAudioF2;
+                default: return false;
+              }
+            };
+            const hasAllAudio = phrases.every(getHasAudio);
+            const audioCount = phrases.filter(getHasAudio).length;
 
             return (
               <div key={category} className="bg-green-800/50 rounded-lg overflow-hidden">
@@ -489,12 +505,17 @@ export default function AudioSettingsPage() {
                 {isExpanded && (
                   <div className="border-t border-green-700">
                     {phrases.map((phrase) => {
-                      const keyM = `${phrase.originalSpeech}-echo`;
-                      const keyF = `${phrase.originalSpeech}-nova`;
-                      const isGeneratingM = generating[keyM];
-                      const isGeneratingF = generating[keyF];
                       const currentSpeech = editedSpeech[phrase.originalSpeech] ?? phrase.speech;
-                      const isEdited = currentSpeech !== phrase.originalSpeech;
+                      const isEdited = currentSpeech !== phrase.speech;
+                      const isSaving = savingTTS[phrase.originalSpeech];
+
+                      // Audio-Status für alle 4 Stimmen
+                      const voiceData: { key: VoiceKey; hasAudio: boolean; audioFile: string | null }[] = [
+                        { key: 'm1', hasAudio: phrase.hasAudioM1, audioFile: phrase.audioM1 },
+                        { key: 'm2', hasAudio: phrase.hasAudioM2, audioFile: phrase.audioM2 },
+                        { key: 'f1', hasAudio: phrase.hasAudioF1, audioFile: phrase.audioF1 },
+                        { key: 'f2', hasAudio: phrase.hasAudioF2, audioFile: phrase.audioF2 },
+                      ];
 
                       return (
                         <div
@@ -522,79 +543,68 @@ export default function AudioSettingsPage() {
                                   placeholder="TTS-Text..."
                                 />
                                 {isEdited && (
-                                  <span className="text-xs text-amber-400">bearbeitet</span>
+                                  <button
+                                    onClick={() => saveTTSText(phrase)}
+                                    disabled={isSaving}
+                                    className="px-2 py-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded text-xs font-medium transition-colors"
+                                    title="TTS-Text speichern"
+                                  >
+                                    {isSaving ? '...' : '💾'}
+                                  </button>
                                 )}
                               </div>
                             </div>
 
-                            {/* Audio-Buttons */}
-                            <div className="flex items-center gap-2">
-                              {/* Männlich */}
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="text-xs text-green-400">M</span>
-                                <div className="flex gap-1">
-                                  {phrase.hasAudioM && (
-                                    <button
-                                      onClick={() => playAudio(`/audio/${phrase.audioM}`)}
-                                      className="w-8 h-8 bg-green-600 hover:bg-green-500 rounded flex items-center justify-center"
-                                      title="Abspielen"
-                                    >
-                                      ▶
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => generateAudio(phrase, 'echo')}
-                                    disabled={isGeneratingM}
-                                    className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                                      isGeneratingM
-                                        ? 'bg-gray-600 animate-pulse'
-                                        : phrase.hasAudioM
-                                        ? 'bg-amber-700 hover:bg-amber-600'
-                                        : 'bg-amber-600 hover:bg-amber-500'
-                                    }`}
-                                    title={phrase.hasAudioM ? 'Neu generieren' : 'Generieren'}
-                                  >
-                                    {isGeneratingM ? '...' : phrase.hasAudioM ? '↻' : '+'}
-                                  </button>
-                                </div>
-                              </div>
+                            {/* Audio-Buttons - 4 Stimmen */}
+                            <div className="flex items-center gap-1">
+                              {voiceData.map(({ key, hasAudio, audioFile }) => {
+                                const isGenerating = generating[`${phrase.originalSpeech}-${key}`];
+                                const colors = {
+                                  m1: { bg: 'bg-green-600', hover: 'hover:bg-green-500', gen: 'bg-green-700', text: 'text-green-400' },
+                                  m2: { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-500', gen: 'bg-emerald-700', text: 'text-emerald-400' },
+                                  f1: { bg: 'bg-pink-600', hover: 'hover:bg-pink-500', gen: 'bg-pink-700', text: 'text-pink-400' },
+                                  f2: { bg: 'bg-purple-600', hover: 'hover:bg-purple-500', gen: 'bg-purple-700', text: 'text-purple-400' },
+                                };
+                                const c = colors[key];
 
-                              {/* Weiblich */}
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="text-xs text-pink-400">F</span>
-                                <div className="flex gap-1">
-                                  {phrase.hasAudioF && (
-                                    <button
-                                      onClick={() => playAudio(`/audio/${phrase.audioF}`)}
-                                      className="w-8 h-8 bg-pink-600 hover:bg-pink-500 rounded flex items-center justify-center"
-                                      title="Abspielen"
-                                    >
-                                      ▶
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => generateAudio(phrase, 'nova')}
-                                    disabled={isGeneratingF}
-                                    className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                                      isGeneratingF
-                                        ? 'bg-gray-600 animate-pulse'
-                                        : phrase.hasAudioF
-                                        ? 'bg-pink-700 hover:bg-pink-600'
-                                        : 'bg-pink-600 hover:bg-pink-500'
-                                    }`}
-                                    title={phrase.hasAudioF ? 'Neu generieren' : 'Generieren'}
-                                  >
-                                    {isGeneratingF ? '...' : phrase.hasAudioF ? '↻' : '+'}
-                                  </button>
-                                </div>
-                              </div>
+                                return (
+                                  <div key={key} className="flex flex-col items-center gap-1">
+                                    <span className={`text-xs ${c.text}`}>{VOICE_LABELS[key].label}</span>
+                                    <div className="flex gap-0.5">
+                                      {hasAudio && audioFile && (
+                                        <button
+                                          onClick={() => playAudio(`/audio/${audioFile}`)}
+                                          className={`w-7 h-7 ${c.bg} ${c.hover} rounded flex items-center justify-center text-xs`}
+                                          title="Abspielen"
+                                        >
+                                          ▶
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => generateAudio(phrase, key)}
+                                        disabled={isGenerating}
+                                        className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-colors ${
+                                          isGenerating
+                                            ? 'bg-gray-600 animate-pulse'
+                                            : hasAudio
+                                            ? `${c.gen} ${c.hover}`
+                                            : `${c.bg} ${c.hover}`
+                                        }`}
+                                        title={hasAudio ? 'Neu generieren' : 'Generieren'}
+                                      >
+                                        {isGenerating ? '·' : hasAudio ? '↻' : '+'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
 
                               {/* Aufnahme-Button */}
-                              <div className="flex flex-col items-center gap-1">
+                              <div className="flex flex-col items-center gap-1 ml-1">
                                 <span className="text-xs text-amber-400">Rec</span>
                                 <button
                                   onClick={() => setRecordingPhrase(phrase)}
-                                  className="w-8 h-8 bg-amber-800 hover:bg-amber-700 rounded flex items-center justify-center transition-colors"
+                                  className="w-7 h-7 bg-amber-800 hover:bg-amber-700 rounded flex items-center justify-center transition-colors text-xs"
                                   title="Eigene Aufnahme"
                                 >
                                   🎤
@@ -607,7 +617,7 @@ export default function AudioSettingsPage() {
                                   <span className="text-xs text-red-400">×</span>
                                   <button
                                     onClick={() => deletePhrase(phrase.originalSpeech)}
-                                    className="w-8 h-8 bg-red-700 hover:bg-red-600 rounded flex items-center justify-center transition-colors"
+                                    className="w-7 h-7 bg-red-700 hover:bg-red-600 rounded flex items-center justify-center transition-colors text-xs"
                                     title="Spruch löschen"
                                   >
                                     🗑
