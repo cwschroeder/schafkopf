@@ -267,157 +267,183 @@
     "text": "Weidda!",
     "speech": "Weidda!",
     "category": "ansage-weiter",
-    "m": "m-358e0dc6.mp3"
+    "m": "m-358e0dc6.mp3",
+    "f": "f-358e0dc6.mp3"
   },
   "I dad weidda!": {
     "text": "I dad weidda!",
     "speech": "I dad weidda!",
     "category": "ansage-weiter",
-    "m": "m-68be267a.mp3"
+    "m": "m-68be267a.mp3",
+    "f": "f-68be267a.mp3"
   },
   "Nix gscheits!": {
     "text": "Nix g'scheits!",
     "speech": "Nix gscheits!",
     "category": "ansage-weiter",
-    "m": "m-39c625c2.mp3"
+    "m": "m-39c625c2.mp3",
+    "f": "f-39c625c2.mp3"
   },
   "I hob nix!": {
     "text": "I hob nix!",
     "speech": "I hob nix!",
     "category": "ansage-weiter",
-    "m": "m-8b5672e5.mp3"
+    "m": "m-8b5672e5.mp3",
+    "f": "f-8b5672e5.mp3"
   },
   "Basst scho!": {
     "text": "Basst scho!",
     "speech": "Basst scho!",
     "category": "ansage-weiter",
-    "m": "m-e5ba4b25.mp3"
+    "m": "m-e5ba4b25.mp3",
+    "f": "f-e5ba4b25.mp3"
   },
   "Na!": {
     "text": "Na!",
     "speech": "Na!",
     "category": "ansage-weiter",
-    "m": "m-0ce9cb1a.mp3"
+    "m": "m-0ce9cb1a.mp3",
+    "f": "f-0ce9cb1a.mp3"
   },
   "Des ko i ned!": {
     "text": "Des ko i ned!",
-    "speech": "Des ko i ned!",
+    "speech": "Des koh ih niad!",
     "category": "ansage-weiter",
-    "m": "m-c39c9ccb.mp3"
+    "m": "m-286886fe.mp3",
+    "f": "f-286886fe.mp3"
   },
   "Wos soi i dou macha?": {
     "text": "Wos soi i dou macha?",
     "speech": "Wos soi i dou macha?",
     "category": "ansage-weiter",
-    "m": "m-a97e7aaf.mp3"
+    "m": "m-a97e7aaf.mp3",
+    "f": "f-a97e7aaf.mp3"
   },
   "Nix dabei!": {
     "text": "Nix dabei!",
     "speech": "Nix dabei!",
     "category": "ansage-weiter",
-    "m": "m-2a37638e.mp3"
+    "m": "m-2a37638e.mp3",
+    "f": "f-2a37638e.mp3"
   },
   "Lauta Bledsinn!": {
     "text": "Lauta Bledsinn!",
     "speech": "Lauta Bledsinn!",
     "category": "ansage-weiter",
-    "m": "m-cb3eb298.mp3"
+    "m": "m-cb3eb298.mp3",
+    "f": "f-cb3eb298.mp3"
   },
   "A Dreck!": {
     "text": "A Dreck!",
-    "speech": "A Dreck!",
+    "speech": "A Drehgg!",
     "category": "ansage-weiter",
-    "m": "m-21c905e9.mp3"
+    "m": "m-7f9ab38d.mp3",
+    "f": "f-d5352507.mp3"
   },
   "Mog ned!": {
     "text": "Mog ned!",
-    "speech": "Mog ned!",
+    "speech": "Mog niad!",
     "category": "ansage-weiter",
-    "m": "m-79fd67d3.mp3"
+    "m": "m-17dcc6ec.mp3",
+    "f": "f-17dcc6ec.mp3"
   },
   "I loss aus!": {
     "text": "I loss aus!",
-    "speech": "I loss aus!",
+    "speech": "Ih loss aus!",
     "category": "ansage-weiter",
-    "m": "m-3cad580c.mp3"
+    "m": "m-3cad580c.mp3",
+    "f": "f-676c3386.mp3"
   },
   "Des san lauta Kracha!": {
     "text": "Des san lauta Kracha!",
     "speech": "Des san lauta Kracha!",
     "category": "ansage-weiter",
-    "m": "m-724d563f.mp3"
+    "m": "m-724d563f.mp3",
+    "f": "f-724d563f.mp3"
   },
   "Nix wia Ramsch!": {
     "text": "Nix wia Ramsch!",
-    "speech": "Nix wia Ramsch!",
+    "speech": "Nix wäi Ramsch!",
     "category": "ansage-weiter",
-    "m": "m-7b80f736.mp3"
+    "m": "m-7b80f736.mp3",
+    "f": "f-e4d3ce32.mp3"
   },
   "Hod sa da Geber heid wieda d Hend niad gwaschn?": {
     "text": "Hod sa da Geber heid wieda d'Hend niad gwaschn?",
     "speech": "Hod sa da Geber heid wieda d Hend niad gwaschn?",
     "category": "ansage-weiter",
-    "m": "m-ebd3ee42.mp3"
+    "m": "m-ebd3ee42.mp3",
+    "f": "f-ebd3ee42.mp3"
   },
   "Lauta Siema heid wieda!": {
     "text": "Lauta Siema heid wieda!",
     "speech": "Lauta Siema heid wieda!",
     "category": "ansage-weiter",
-    "m": "m-2183ed08.mp3"
+    "m": "m-2183ed08.mp3",
+    "f": "f-2183ed08.mp3"
   },
   "Mit dem heads eitz niad grachat, göll?": {
     "text": "Mit dem heads eitz niad grachat, göll?",
     "speech": "Mit dem heads eitz niad grachat, göll?",
     "category": "ansage-weiter",
-    "m": "m-f4feb942.mp3"
+    "m": "m-f4feb942.mp3",
+    "f": "f-f4feb942.mp3"
   },
   "Göll dou schaust niad schlecht?": {
     "text": "Göll dou schaust niad schlecht?",
     "speech": "Göll dou schaust niad schlecht?",
     "category": "ansage-weiter",
-    "m": "m-669acdb4.mp3"
+    "m": "m-669acdb4.mp3",
+    "f": "f-669acdb4.mp3"
   },
   "Wos is des für a Schas?": {
     "text": "Wos is des für a Schas?",
-    "speech": "Wos is des für a Schas?",
+    "speech": "Wos is nou des für a Schaas?",
     "category": "ansage-weiter",
-    "m": "m-a870ba37.mp3"
+    "m": "m-a870ba37.mp3",
+    "f": "f-6339b407.mp3"
   },
   "Des is ja zum Scheissn!": {
     "text": "Des is ja zum Scheissn!",
     "speech": "Des is ja zum Scheissn!",
     "category": "ansage-weiter",
-    "m": "m-6204429e.mp3"
+    "m": "m-6204429e.mp3",
+    "f": "f-6204429e.mp3"
   },
   "Dou hod owa oina wiedda guad gmischt heid!": {
     "text": "Dou hod owa oina wiedda guad gmischt heid!",
     "speech": "Dou hod owa oina wiedda guad gmischt heid!",
     "category": "ansage-weiter",
-    "m": "m-7b995611.mp3"
+    "m": "m-7b995611.mp3",
+    "f": "f-7b995611.mp3"
   },
   "D Alte!": {
     "text": "D'Alte!",
-    "speech": "D Alte!",
+    "speech": "D'Alte!",
     "category": "karte-eichel-ass",
-    "m": "m-3af89faa.mp3"
+    "m": "m-3af89faa.mp3",
+    "f": "f-9b380297.mp3"
   },
   "Dou kummt d Alte!": {
     "text": "Dou kummt d'Alte!",
-    "speech": "Dou kummt d Alte!",
+    "speech": "Dou kummt d'Alte!",
     "category": "karte-eichel-ass",
-    "m": "m-c176d78b.mp3"
+    "m": "m-c176d78b.mp3",
+    "f": "f-e3d60027.mp3"
   },
   "Eichalia, die oide Waldschnepfe!": {
     "text": "Eichalia, die oide Waldschnepfe!",
-    "speech": "Eichalia, die oide Waldschnepfe!",
+    "speech": "Oichalia, die alte Waldschnepfe!",
     "category": "karte-eichel-ass",
-    "m": "m-7500cc95.mp3"
+    "m": "m-7500cc95.mp3",
+    "f": "f-42b718a7.mp3"
   },
   "D Oichlsau!": {
     "text": "D'Oichlsau!",
-    "speech": "D Oichlsau!",
+    "speech": "D'Oichlsau!",
     "category": "karte-eichel-ass",
-    "m": "m-997b6692.mp3"
+    "m": "m-997b6692.mp3",
+    "f": "f-0b2edcf2.mp3"
   },
   "D Blaue!": {
     "text": "D'Blaue!",
