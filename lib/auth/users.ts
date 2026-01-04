@@ -3,13 +3,13 @@
  * High-level CRUD Operationen für UserAccounts
  */
 
-import { 
-  getFullUserAccount, 
+import {
+  getFullUserAccount,
   updateUserSettings as updateSettings,
   linkLegacyPlayerId as linkLegacy,
   getUserIdFromLegacyId,
-  getRedis,
-} from './redis-adapter';
+} from './hybrid-adapter';
+import { getRedis } from './redis-adapter';
 import { 
   UserAccount, 
   UserSettings, 

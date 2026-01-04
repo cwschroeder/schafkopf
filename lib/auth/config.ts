@@ -5,7 +5,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
-import { RedisAdapter, getFullUserAccount } from './redis-adapter';
+import { HybridAdapter, getFullUserAccount } from './hybrid-adapter';
 import type { UserAccount, UserSettings } from './types';
 
 // Session-Erweiterung für TypeScript
@@ -22,7 +22,7 @@ declare module 'next-auth' {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: RedisAdapter(),
+  adapter: HybridAdapter(),
   trustHost: true,
   basePath: '/schafkopf/api/auth',
 
