@@ -11,6 +11,12 @@ npm run lint     # ESLint
 
 # Socket.IO server (required for real-time features)
 node socket-server.js  # Runs on port 3002
+
+# Database (Drizzle ORM)
+npm run db:generate   # Generate migrations from schema
+npm run db:push       # Push schema to database
+npm run db:studio     # Open Drizzle Studio
+npm run migrate:users # Migrate users from Redis to PostgreSQL
 ```
 
 **Deployment**: Use `/deploy` skill which builds, packages, and deploys to VPS.
@@ -27,18 +33,20 @@ node socket-server.js  # Runs on port 3002
 ### Stack
 - **Next.js 14** (App Router, standalone output, basePath `/schafkopf`)
 - **Socket.IO** - Self-hosted WebSocket server for real-time events
-- **Redis** - Game state and room storage
+- **PostgreSQL** - Persistent data (users, stats, game history) via Drizzle ORM
+- **Redis** - Ephemeral data (sessions, active games/rooms)
 - **Zustand** - Client-side state management
 
 ### Production Services (Hetzner VPS)
 
 **Live URL:** https://mqtt.ivu-software.de/schafkopf
 
-| Service | Port | Systemd |
-|---------|------|---------|
-| Next.js App | 3001 | `schafkopf` |
-| Socket.IO | 3002 | `schafkopf-socket` |
-| Redis | 6379 | `redis-server` |
+| Service | Host | Port | Systemd |
+|---------|------|------|---------|
+| Next.js App | 10.243.0.8 | 3001 | `schafkopf` |
+| Socket.IO | 10.243.0.8 | 3002 | `schafkopf-socket` |
+| PostgreSQL | 10.243.0.5 | 5432 | `postgresql` |
+| Redis | 10.243.0.8 | 6379 | `redis-server` |
 
 ### Core Files
 
@@ -58,6 +66,11 @@ node socket-server.js  # Runs on port 3002
 **Bot Logic** (`lib/bot-logic.ts`):
 - `botAnsage()` - Rule-based game announcement (Sauspiel, Wenz, Solo)
 - `botSpielzug()` - Card selection strategy
+
+**Database** (`lib/db/`):
+- `schema.ts` - Drizzle schema (users, stats, game_results, feedback)
+- `index.ts` - PostgreSQL connection pool
+- Feature flags in `lib/config/feature-flags.ts` control PostgreSQL vs Redis
 
 **API Routes** (`app/api/`):
 - `/api/rooms` - Room CRUD, join/leave, ready status, start game
@@ -80,7 +93,18 @@ node socket-server.js  # Runs on port 3002
 
 ### Environment Variables
 ```bash
+# Database
+DATABASE_URL=postgresql://schafkopf:PASSWORD@10.243.0.5:5432/schafkopf
 REDIS_URL=redis://127.0.0.1:6379
+
+# Real-time
 SOCKET_TRIGGER_URL=http://127.0.0.1:3002/trigger
 NEXT_PUBLIC_SOCKET_URL=https://mqtt.ivu-software.de
+
+# Feature Flags (PostgreSQL migration)
+USE_POSTGRES_USERS=false      # User accounts
+USE_POSTGRES_STATS=false      # Statistics & leaderboards
+USE_POSTGRES_HISTORY=false    # Game history
+USE_POSTGRES_FEEDBACK=false   # Feedback system
+DUAL_WRITE_ENABLED=false      # Write to both during migration
 ```
