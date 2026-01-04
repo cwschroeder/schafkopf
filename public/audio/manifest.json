@@ -3,363 +3,419 @@
     "text": "Mit da Oichl!",
     "speech": "Mit da Oichl!",
     "category": "ansage-sauspiel-eichel",
-    "m": "m-f702c06c.mp3"
+    "m": "m-f702c06c.mp3",
+    "f2": "f2-f702c06c.mp3"
   },
   "Oichl Sau!": {
     "text": "Oichl-Sau!",
     "speech": "Oichl Sau!",
     "category": "ansage-sauspiel-eichel",
-    "m": "m-4deca730.mp3"
+    "m": "m-4deca730.mp3",
+    "f2": "f2-4deca730.mp3"
   },
   "I spüll aaf d Oichl!": {
     "text": "I spüll aaf d'Oichl!",
     "speech": "I spüll aaf d Oichl!",
     "category": "ansage-sauspiel-eichel",
-    "m": "m-d4626555.mp3"
+    "m": "m-d4626555.mp3",
+    "f2": "f2-d4626555.mp3"
   },
   "D Oidn mou her!": {
     "text": "D'Oidn mou her!",
     "speech": "D Oidn mou her!",
     "category": "ansage-sauspiel-eichel",
-    "m": "m-a5ad0f9e.mp3"
+    "m": "m-a5ad0f9e.mp3",
+    "f2": "f2-a5ad0f9e.mp3"
   },
   "I dadad d Oidn souchn!": {
     "text": "I dadad d'Oidn souchn!",
     "speech": "I dadad d Oidn souchn!",
     "category": "ansage-sauspiel-eichel",
-    "m": "m-29330168.mp3"
+    "m": "m-29330168.mp3",
+    "f2": "f2-29330168.mp3"
   },
   "Wer hod d Alte?": {
     "text": "Wer hod d'Alte?",
     "speech": "Wer hod d Alte?",
     "category": "ansage-sauspiel-eichel",
-    "m": "m-8c2fb22c.mp3"
+    "m": "m-8c2fb22c.mp3",
+    "f2": "f2-8c2fb22c.mp3"
   },
   "Mit da Grosn!": {
     "text": "Mit da Grosn!",
     "speech": "Mit da Grosn!",
     "category": "ansage-sauspiel-gras",
-    "m": "m-3371e48b.mp3"
+    "m": "m-3371e48b.mp3",
+    "f2": "f2-3371e48b.mp3"
   },
   "Groos Sau!": {
     "text": "Gras-Sau!",
     "speech": "Groos Sau!",
     "category": "ansage-sauspiel-gras",
-    "m": "m-63af4420.mp3"
+    "m": "m-63af4420.mp3",
+    "f2": "f2-63af4420.mp3"
   },
   "I gäih aaf Groos!": {
     "text": "I gäih aaf Gras!",
     "speech": "I gäih aaf Groos!",
     "category": "ansage-sauspiel-gras",
-    "m": "m-577a2e13.mp3"
+    "m": "m-577a2e13.mp3",
+    "f2": "f2-577a2e13.mp3"
   },
   "D Blaue mou her!": {
     "text": "D'Blaue mou her!",
     "speech": "D Blaue mou her!",
     "category": "ansage-sauspiel-gras",
-    "m": "m-874b5361.mp3"
+    "m": "m-874b5361.mp3",
+    "f2": "f2-874b5361.mp3"
   },
   "I dadad d Blau Sau souchn!": {
     "text": "I dadad d'Blau Sau souchn!",
     "speech": "I dadad d Blau Sau souchn!",
     "category": "ansage-sauspiel-gras",
-    "m": "m-a907a2ec.mp3"
+    "m": "m-a907a2ec.mp3",
+    "f2": "f2-a907a2ec.mp3"
   },
   "Wo is d Blaue?": {
     "text": "Wo is d'Blaue?",
     "speech": "Wo is d Blaue?",
     "category": "ansage-sauspiel-gras",
-    "m": "m-c1009d5d.mp3"
+    "m": "m-c1009d5d.mp3",
+    "f2": "f2-c1009d5d.mp3"
   },
   "Da Hund hockt ohm!": {
     "text": "Da Hund hockt ohm!",
     "speech": "Da Hund hockt ohm!",
     "category": "ansage-sauspiel-schellen",
-    "m": "m-c58096b9.mp3"
+    "m": "m-c58096b9.mp3",
+    "f2": "f2-c58096b9.mp3"
   },
   "Schelln Sau!": {
     "text": "Schelln-Sau!",
     "speech": "Schelln Sau!",
     "category": "ansage-sauspiel-schellen",
-    "m": "m-6d93968b.mp3"
+    "m": "m-6d93968b.mp3",
+    "f2": "f2-6d93968b.mp3"
   },
   "Da Hund mou her!": {
     "text": "Da Hund mou her!",
     "speech": "Da Hund mou her!",
     "category": "ansage-sauspiel-schellen",
-    "m": "m-3be3f5d9.mp3"
+    "m": "m-3be3f5d9.mp3",
+    "f2": "f2-3be3f5d9.mp3"
   },
   "Schlass!": {
     "text": "Schlass!",
     "speech": "Schlass!",
     "category": "ansage-sauspiel-schellen",
-    "m": "m-5b10a392.mp3"
+    "m": "m-5b10a392.mp3",
+    "f2": "f2-5b10a392.mp3"
   },
   "I gäih aaf Schelln!": {
     "text": "I gäih aaf Schelln!",
     "speech": "I gäih aaf Schelln!",
     "category": "ansage-sauspiel-schellen",
-    "m": "m-3fa03e1e.mp3"
+    "m": "m-3fa03e1e.mp3",
+    "f2": "f2-3fa03e1e.mp3"
   },
   "Wo hockt da Hund?": {
     "text": "Wo hockt da Hund?",
     "speech": "Wo hockt da Hund?",
     "category": "ansage-sauspiel-schellen",
-    "m": "m-51673189.mp3"
+    "m": "m-51673189.mp3",
+    "f2": "f2-51673189.mp3"
   },
   "Oichl Soola!": {
     "text": "Oichlsola!",
     "speech": "Oichl Soola!",
     "category": "ansage-solo-eichel",
-    "m": "m-df3a7c7f.mp3"
+    "m": "m-df3a7c7f.mp3",
+    "f2": "f2-df3a7c7f.mp3"
   },
   "I spüll Oichl alloa!": {
     "text": "I spüll Oichl alloa!",
     "speech": "I spüll Oichl alloa!",
     "category": "ansage-solo-eichel",
-    "m": "m-2f32881e.mp3"
+    "m": "m-2f32881e.mp3",
+    "f2": "f2-2f32881e.mp3"
   },
   "Oichl is Trumpf!": {
     "text": "Oichl is Trumpf!",
     "speech": "Oichl is Trumpf!",
     "category": "ansage-solo-eichel",
-    "m": "m-ad60a3b2.mp3"
+    "m": "m-ad60a3b2.mp3",
+    "f2": "f2-ad60a3b2.mp3"
   },
   "Oichl ganz alloa!": {
     "text": "Oichl ganz alloa!",
     "speech": "Oichl ganz alloa!",
     "category": "ansage-solo-eichel",
-    "m": "m-b9734114.mp3"
+    "m": "m-b9734114.mp3",
+    "f2": "f2-b9734114.mp3"
   },
   "Groos Soola!": {
     "text": "Grassola!",
     "speech": "Groos Soola!",
     "category": "ansage-solo-gras",
-    "m": "m-1afe2aba.mp3"
+    "m": "m-1afe2aba.mp3",
+    "f2": "f2-1afe2aba.mp3"
   },
   "Groos alloa!": {
     "text": "Gras alloa!",
     "speech": "Groos alloa!",
     "category": "ansage-solo-gras",
-    "m": "m-99dd93d3.mp3"
+    "m": "m-99dd93d3.mp3",
+    "f2": "f2-99dd93d3.mp3"
   },
   "I spüll Groos!": {
     "text": "I spüll Gras!",
     "speech": "I spüll Groos!",
     "category": "ansage-solo-gras",
-    "m": "m-37f0423f.mp3"
+    "m": "m-37f0423f.mp3",
+    "f2": "f2-37f0423f.mp3"
   },
   "Grün is Trumpf!": {
     "text": "Grün is Trumpf!",
     "speech": "Grün is Trumpf!",
     "category": "ansage-solo-gras",
-    "m": "m-d06d585d.mp3"
+    "m": "m-d06d585d.mp3",
+    "f2": "f2-d06d585d.mp3"
   },
   "Herz Soola!": {
     "text": "Herzsola!",
     "speech": "Herz Soola!",
     "category": "ansage-solo-herz",
-    "m": "m-af6f17ba.mp3"
+    "m": "m-af6f17ba.mp3",
+    "f2": "f2-af6f17ba.mp3"
   },
   "I mach a Herzl!": {
     "text": "I mach a Herzl!",
     "speech": "I mach a Herzl!",
     "category": "ansage-solo-herz",
-    "m": "m-34b0de50.mp3"
+    "m": "m-34b0de50.mp3",
+    "f2": "f2-34b0de50.mp3"
   },
   "Herz alloa!": {
     "text": "Herz alloa!",
     "speech": "Herz alloa!",
     "category": "ansage-solo-herz",
-    "m": "m-d479da75.mp3"
+    "m": "m-d479da75.mp3",
+    "f2": "f2-d479da75.mp3"
   },
   "Herz, Schmerz!": {
     "text": "Herz, Schmerz!",
     "speech": "Herz, Schmerz!",
     "category": "ansage-solo-herz",
-    "m": "m-61eb93a9.mp3"
+    "m": "m-61eb93a9.mp3",
+    "f2": "f2-61eb93a9.mp3"
   },
   "Schelln Soola!": {
     "text": "Schellnsola!",
     "speech": "Schelln Soola!",
     "category": "ansage-solo-schellen",
-    "m": "m-4e4b26f2.mp3"
+    "m": "m-4e4b26f2.mp3",
+    "f2": "f2-4e4b26f2.mp3"
   },
   "Schelln alloa!": {
     "text": "Schelln alloa!",
     "speech": "Schelln alloa!",
     "category": "ansage-solo-schellen",
-    "m": "m-e9ea0157.mp3"
+    "m": "m-e9ea0157.mp3",
+    "f2": "f2-e9ea0157.mp3"
   },
   "I spüll Schelln!": {
     "text": "I spüll Schelln!",
     "speech": "I spüll Schelln!",
     "category": "ansage-solo-schellen",
-    "m": "m-bd364a80.mp3"
+    "m": "m-bd364a80.mp3",
+    "f2": "f2-bd364a80.mp3"
   },
   "Schelln is Trumpf!": {
     "text": "Schelln is Trumpf!",
     "speech": "Schelln is Trumpf!",
     "category": "ansage-solo-schellen",
-    "m": "m-a32af338.mp3"
+    "m": "m-a32af338.mp3",
+    "f2": "f2-a32af338.mp3"
   },
   "Wennz!": {
     "text": "Wenz!",
     "speech": "Wennz!",
     "category": "ansage-wenz",
-    "m": "m-d1cf2a94.mp3"
+    "m": "m-d1cf2a94.mp3",
+    "f2": "f2-d1cf2a94.mp3"
   },
   "An Wennz!": {
     "text": "An Wenz!",
     "speech": "An Wennz!",
     "category": "ansage-wenz",
-    "m": "m-ff176fc8.mp3"
+    "m": "m-ff176fc8.mp3",
+    "f2": "f2-ff176fc8.mp3"
   },
   "I wennz!": {
     "text": "I wenz!",
     "speech": "I wennz!",
     "category": "ansage-wenz",
-    "m": "m-4252e7fc.mp3"
+    "m": "m-4252e7fc.mp3",
+    "f2": "f2-4252e7fc.mp3"
   },
   "Wennz hob i!": {
     "text": "Wenz hob i!",
     "speech": "Wennz hob i!",
     "category": "ansage-wenz",
-    "m": "m-71f55f19.mp3"
+    "m": "m-71f55f19.mp3",
+    "f2": "f2-71f55f19.mp3"
   },
   "Des is a Wennz!": {
     "text": "Des is a Wenz!",
     "speech": "Des is a Wennz!",
     "category": "ansage-wenz",
-    "m": "m-01697db8.mp3"
+    "m": "m-01697db8.mp3",
+    "f2": "f2-01697db8.mp3"
   },
   "Wennz, bittschee!": {
     "text": "Wenz, bittschee!",
     "speech": "Wennz, bittschee!",
     "category": "ansage-wenz",
-    "m": "m-97550e68.mp3"
+    "m": "m-97550e68.mp3",
+    "f2": "f2-97550e68.mp3"
   },
   "Geier!": {
     "text": "Geier!",
     "speech": "Geier!",
     "category": "ansage-geier",
-    "m": "m-60740ff2.mp3"
+    "m": "m-60740ff2.mp3",
+    "f2": "f2-60740ff2.mp3"
   },
   "An Geier!": {
     "text": "An Geier!",
     "speech": "An Geier!",
     "category": "ansage-geier",
-    "m": "m-20ff0d02.mp3"
+    "m": "m-20ff0d02.mp3",
+    "f2": "f2-20ff0d02.mp3"
   },
   "I geier!": {
     "text": "I geier!",
     "speech": "I geier!",
     "category": "ansage-geier",
-    "m": "m-d811c6e4.mp3"
+    "m": "m-d811c6e4.mp3",
+    "f2": "f2-d811c6e4.mp3"
   },
   "Geier is ogsogt!": {
     "text": "Geier is ogsogt!",
     "speech": "Geier is ogsogt!",
     "category": "ansage-geier",
-    "m": "m-7942e2d9.mp3"
+    "m": "m-7942e2d9.mp3",
+    "f2": "f2-7942e2d9.mp3"
   },
   "Weidda!": {
     "text": "Weidda!",
     "speech": "Weidda!",
     "category": "ansage-weiter",
     "m": "m-358e0dc6.mp3",
-    "f": "f-358e0dc6.mp3"
+    "f": "f-358e0dc6.mp3",
+    "f2": "f2-358e0dc6.mp3"
   },
   "I dad weidda!": {
     "text": "I dad weidda!",
     "speech": "I dad weidda!",
     "category": "ansage-weiter",
     "m": "m-68be267a.mp3",
-    "f": "f-68be267a.mp3"
+    "f": "f-68be267a.mp3",
+    "f2": "f2-68be267a.mp3"
   },
   "Nix gscheits!": {
     "text": "Nix g'scheits!",
     "speech": "Nix gscheits!",
     "category": "ansage-weiter",
     "m": "m-39c625c2.mp3",
-    "f": "f-39c625c2.mp3"
+    "f": "f-39c625c2.mp3",
+    "f2": "f2-39c625c2.mp3"
   },
   "I hob nix!": {
     "text": "I hob nix!",
     "speech": "I hob nix!",
     "category": "ansage-weiter",
     "m": "m-8b5672e5.mp3",
-    "f": "f-8b5672e5.mp3"
+    "f": "f-8b5672e5.mp3",
+    "f2": "f2-8b5672e5.mp3"
   },
   "Basst scho!": {
     "text": "Basst scho!",
     "speech": "Basst scho!",
     "category": "ansage-weiter",
     "m": "m-e5ba4b25.mp3",
-    "f": "f-e5ba4b25.mp3"
+    "f": "f-e5ba4b25.mp3",
+    "f2": "f2-e5ba4b25.mp3"
   },
   "Na!": {
     "text": "Na!",
     "speech": "Na!",
     "category": "ansage-weiter",
     "m": "m-0ce9cb1a.mp3",
-    "f": "f-0ce9cb1a.mp3"
+    "f": "f-0ce9cb1a.mp3",
+    "f2": "f2-0ce9cb1a.mp3"
   },
   "Des ko i ned!": {
     "text": "Des ko i ned!",
     "speech": "Des koh ih niad!",
     "category": "ansage-weiter",
     "m": "m-286886fe.mp3",
-    "f": "f-286886fe.mp3"
+    "f": "f-286886fe.mp3",
+    "f2": "f2-286886fe.mp3"
   },
   "Wos soi i dou macha?": {
     "text": "Wos soi i dou macha?",
     "speech": "Wos soi i dou macha?",
     "category": "ansage-weiter",
     "m": "m-a97e7aaf.mp3",
-    "f": "f-a97e7aaf.mp3"
+    "f": "f-a97e7aaf.mp3",
+    "f2": "f2-a97e7aaf.mp3"
   },
   "Nix dabei!": {
     "text": "Nix dabei!",
     "speech": "Nix dabei!",
     "category": "ansage-weiter",
     "m": "m-2a37638e.mp3",
-    "f": "f-2a37638e.mp3"
+    "f": "f-2a37638e.mp3",
+    "f2": "f2-2a37638e.mp3"
   },
   "Lauta Bledsinn!": {
     "text": "Lauta Bledsinn!",
     "speech": "Lauta Bledsinn!",
     "category": "ansage-weiter",
     "m": "m-cb3eb298.mp3",
-    "f": "f-cb3eb298.mp3"
+    "f": "f-cb3eb298.mp3",
+    "f2": "f2-cb3eb298.mp3"
   },
   "A Dreck!": {
     "text": "A Dreck!",
     "speech": "A Drehgg!",
     "category": "ansage-weiter",
-    "m": "m-7f9ab38d.mp3",
-    "f": "f-d5352507.mp3"
+    "m": "m-21c905e9.mp3",
+    "f": "f-21c905e9.mp3"
   },
   "Mog ned!": {
     "text": "Mog ned!",
     "speech": "Mog niad!",
     "category": "ansage-weiter",
     "m": "m-17dcc6ec.mp3",
-    "f": "f-17dcc6ec.mp3"
+    "f": "f-17dcc6ec.mp3",
+    "f2": "f2-17dcc6ec.mp3"
   },
   "I loss aus!": {
     "text": "I loss aus!",
     "speech": "Ih loss aus!",
     "category": "ansage-weiter",
     "m": "m-3cad580c.mp3",
-    "f": "f-676c3386.mp3"
+    "f": "f-3cad580c.mp3"
   },
   "Des san lauta Kracha!": {
     "text": "Des san lauta Kracha!",
     "speech": "Des san lauta Kracha!",
     "category": "ansage-weiter",
     "m": "m-724d563f.mp3",
-    "f": "f-724d563f.mp3"
+    "f": "f-724d563f.mp3",
+    "f2": "f2-724d563f.mp3"
   },
   "Nix wia Ramsch!": {
     "text": "Nix wia Ramsch!",
@@ -373,28 +429,32 @@
     "speech": "Hod sa da Geber heid wieda d Hend niad gwaschn?",
     "category": "ansage-weiter",
     "m": "m-ebd3ee42.mp3",
-    "f": "f-ebd3ee42.mp3"
+    "f": "f-ebd3ee42.mp3",
+    "f2": "f2-ebd3ee42.mp3"
   },
   "Lauta Siema heid wieda!": {
     "text": "Lauta Siema heid wieda!",
     "speech": "Lauta Siema heid wieda!",
     "category": "ansage-weiter",
     "m": "m-2183ed08.mp3",
-    "f": "f-2183ed08.mp3"
+    "f": "f-2183ed08.mp3",
+    "f2": "f2-2183ed08.mp3"
   },
   "Mit dem heads eitz niad grachat, göll?": {
     "text": "Mit dem heads eitz niad grachat, göll?",
     "speech": "Mit dem heads eitz niad grachat, göll?",
     "category": "ansage-weiter",
     "m": "m-f4feb942.mp3",
-    "f": "f-f4feb942.mp3"
+    "f": "f-f4feb942.mp3",
+    "f2": "f2-f4feb942.mp3"
   },
   "Göll dou schaust niad schlecht?": {
     "text": "Göll dou schaust niad schlecht?",
     "speech": "Göll dou schaust niad schlecht?",
     "category": "ansage-weiter",
     "m": "m-669acdb4.mp3",
-    "f": "f-669acdb4.mp3"
+    "f": "f-669acdb4.mp3",
+    "f2": "f2-669acdb4.mp3"
   },
   "Wos is des für a Schas?": {
     "text": "Wos is des für a Schas?",
@@ -408,14 +468,16 @@
     "speech": "Des is ja zum Scheissn!",
     "category": "ansage-weiter",
     "m": "m-6204429e.mp3",
-    "f": "f-6204429e.mp3"
+    "f": "f-6204429e.mp3",
+    "f2": "f2-6204429e.mp3"
   },
   "Dou hod owa oina wiedda guad gmischt heid!": {
     "text": "Dou hod owa oina wiedda guad gmischt heid!",
     "speech": "Dou hod owa oina wiedda guad gmischt heid!",
     "category": "ansage-weiter",
     "m": "m-7b995611.mp3",
-    "f": "f-7b995611.mp3"
+    "f": "f-7b995611.mp3",
+    "f2": "f2-7b995611.mp3"
   },
   "D Alte!": {
     "text": "D'Alte!",
@@ -449,1135 +511,1324 @@
     "text": "D'Blaue!",
     "speech": "D Blaue!",
     "category": "karte-gras-ass",
-    "m": "m-c7778b31.mp3"
+    "m": "m-c7778b31.mp3",
+    "f2": "f2-c7778b31.mp3"
   },
   "D Blau Sau!": {
     "text": "D'Blau Sau!",
     "speech": "D Blau Sau!",
     "category": "karte-gras-ass",
-    "m": "m-97e4c69f.mp3"
+    "m": "m-97e4c69f.mp3",
+    "f2": "f2-97e4c69f.mp3"
   },
   "Groossau!": {
     "text": "Grassau!",
     "speech": "Groossau!",
     "category": "karte-gras-ass",
-    "m": "m-efe8360f.mp3"
+    "m": "m-efe8360f.mp3",
+    "f2": "f2-efe8360f.mp3"
   },
   "Dou is d Blaue!": {
     "text": "Dou is d'Blaue!",
     "speech": "Dou is d Blaue!",
     "category": "karte-gras-ass",
-    "m": "m-a880a94f.mp3"
+    "m": "m-a880a94f.mp3",
+    "f2": "f2-a880a94f.mp3"
   },
   "Die Blaue griagst!": {
     "text": "Die Blaue griagst!",
     "speech": "Die Blaue griagst!",
     "category": "karte-gras-ass",
-    "m": "m-20826d45.mp3"
+    "m": "m-20826d45.mp3",
+    "f2": "f2-20826d45.mp3"
   },
   "Herzsau!": {
     "text": "Herzsau!",
     "speech": "Herzsau!",
     "category": "karte-herz-ass",
-    "m": "m-5172502a.mp3"
+    "m": "m-5172502a.mp3",
+    "f2": "f2-5172502a.mp3"
   },
   "Herz, Schmerz und sonst no wos!": {
     "text": "Herz, Schmerz und sonst no wos!",
     "speech": "Herz, Schmerz und sonst no wos!",
     "category": "karte-herz-ass",
-    "m": "m-d92c242a.mp3"
+    "m": "m-d92c242a.mp3",
+    "f2": "f2-d92c242a.mp3"
   },
   "Des Herzl!": {
     "text": "Des Herzl!",
     "speech": "Des Herzl!",
     "category": "karte-herz-ass",
-    "m": "m-ab24315d.mp3"
+    "m": "m-ab24315d.mp3",
+    "f2": "f2-ab24315d.mp3"
   },
   "D Schellnsau!": {
     "text": "D'Schellnsau!",
     "speech": "D Schellnsau!",
     "category": "karte-schellen-ass",
-    "m": "m-a99ca485.mp3"
+    "m": "m-a99ca485.mp3",
+    "f2": "f2-a99ca485.mp3"
   },
   "Dou, da Hund!": {
     "text": "Dou, da Hund!",
     "speech": "Dou, da Hund!",
     "category": "karte-schellen-ass",
-    "m": "m-e760f2ab.mp3"
+    "m": "m-e760f2ab.mp3",
+    "f2": "f2-e760f2ab.mp3"
   },
   "Dou hau an Mox ei!": {
     "text": "Dou hau an Mox ei!",
     "speech": "Dou hau an Mox ei!",
     "category": "karte-herz-koenig",
-    "m": "m-352e51ab.mp3"
+    "m": "m-352e51ab.mp3",
+    "f2": "f2-352e51ab.mp3"
   },
   "Da Mox!": {
     "text": "Da Mox!",
     "speech": "Da Mox!",
     "category": "karte-herz-koenig",
-    "m": "m-1c665369.mp3"
+    "m": "m-1c665369.mp3",
+    "f2": "f2-1c665369.mp3"
   },
   "Herzkini!": {
     "text": "Herzkini!",
     "speech": "Herzkini!",
     "category": "karte-herz-koenig",
-    "m": "m-20cd83e9.mp3"
+    "m": "m-20cd83e9.mp3",
+    "f2": "f2-20cd83e9.mp3"
   },
   "Da Herzkönig!": {
     "text": "Da Herzkönig!",
     "speech": "Da Herzkönig!",
     "category": "karte-herz-koenig",
-    "m": "m-5980db1c.mp3"
+    "m": "m-5980db1c.mp3",
+    "f2": "f2-5980db1c.mp3"
   },
   "Oichlkini!": {
     "text": "Oichlkini!",
     "speech": "Oichlkini!",
     "category": "karte-eichel-koenig",
-    "m": "m-075cc213.mp3"
+    "m": "m-075cc213.mp3",
+    "f2": "f2-075cc213.mp3"
   },
   "Da Oide!": {
     "text": "Da Oide!",
     "speech": "Da Oide!",
     "category": "karte-eichel-koenig",
-    "m": "m-39f56645.mp3"
+    "m": "m-39f56645.mp3",
+    "f2": "f2-39f56645.mp3"
   },
   "Grooskini!": {
     "text": "Graskini!",
     "speech": "Grooskini!",
     "category": "karte-gras-koenig",
-    "m": "m-425def29.mp3"
+    "m": "m-425def29.mp3",
+    "f2": "f2-425def29.mp3"
   },
   "Da Grüne!": {
     "text": "Da Grüne!",
     "speech": "Da Grüne!",
     "category": "karte-gras-koenig",
-    "m": "m-9e8977be.mp3"
+    "m": "m-9e8977be.mp3",
+    "f2": "f2-9e8977be.mp3"
   },
   "Schellnkini!": {
     "text": "Schellnkini!",
     "speech": "Schellnkini!",
     "category": "karte-schellen-koenig",
-    "m": "m-cc4e1799.mp3"
+    "m": "m-cc4e1799.mp3",
+    "f2": "f2-cc4e1799.mp3"
   },
   "Da Alte!": {
     "text": "Da Alte!",
     "speech": "Da Alte!",
     "category": "karte-eichel-ober",
-    "m": "m-9b1ead75.mp3"
+    "m": "m-9b1ead75.mp3",
+    "f2": "f2-9b1ead75.mp3"
   },
   "Oichlober!": {
     "text": "Oichlober!",
     "speech": "Oichlober!",
     "category": "karte-eichel-ober",
-    "m": "m-0604b5a1.mp3"
+    "m": "m-0604b5a1.mp3",
+    "f2": "f2-0604b5a1.mp3"
   },
   "Da höchste Trumpf!": {
     "text": "Da höchste Trumpf!",
     "speech": "Da höchste Trumpf!",
     "category": "karte-eichel-ober",
-    "m": "m-7e90d28a.mp3"
+    "m": "m-7e90d28a.mp3",
+    "f2": "f2-7e90d28a.mp3"
   },
   "Des is da Chef!": {
     "text": "Des is da Chef!",
     "speech": "Des is da Chef!",
     "category": "karte-eichel-ober",
-    "m": "m-d85af9b0.mp3"
+    "m": "m-d85af9b0.mp3",
+    "f2": "f2-d85af9b0.mp3"
   },
   "Da Blaue!": {
     "text": "Da Blaue!",
     "speech": "Da Blaue!",
     "category": "karte-gras-ober",
-    "m": "m-787cdaec.mp3"
+    "m": "m-787cdaec.mp3",
+    "f2": "f2-787cdaec.mp3"
   },
   "Groosober!": {
     "text": "Grasober!",
     "speech": "Groosober!",
     "category": "karte-gras-ober",
-    "m": "m-f24b4189.mp3"
+    "m": "m-f24b4189.mp3",
+    "f2": "f2-f24b4189.mp3"
   },
   "Da Zweithöchste!": {
     "text": "Da Zweithöchste!",
     "speech": "Da Zweithöchste!",
     "category": "karte-gras-ober",
-    "m": "m-857875f4.mp3"
+    "m": "m-857875f4.mp3",
+    "f2": "f2-857875f4.mp3"
   },
   "Da Blaue kummt!": {
     "text": "Da Blaue kummt!",
     "speech": "Da Blaue kummt!",
     "category": "karte-gras-ober",
-    "m": "m-25d57573.mp3"
+    "m": "m-25d57573.mp3",
+    "f2": "f2-25d57573.mp3"
   },
   "Herzober!": {
     "text": "Herzober!",
     "speech": "Herzober!",
     "category": "karte-herz-ober",
-    "m": "m-38c53ee1.mp3"
+    "m": "m-38c53ee1.mp3",
+    "f2": "f2-38c53ee1.mp3"
   },
   "Schellnober!": {
     "text": "Schellnober!",
     "speech": "Schellnober!",
     "category": "karte-schellen-ober",
-    "m": "m-b5459a9c.mp3"
+    "m": "m-b5459a9c.mp3",
+    "f2": "f2-b5459a9c.mp3"
   },
   "Da Oide Wennz!": {
     "text": "Da Oide Wenz!",
     "speech": "Da Oide Wennz!",
     "category": "karte-eichel-unter",
-    "m": "m-aaf7bf11.mp3"
+    "m": "m-aaf7bf11.mp3",
+    "f2": "f2-aaf7bf11.mp3"
   },
   "Da Alte Wennz!": {
     "text": "Da Alte Wenz!",
     "speech": "Da Alte Wennz!",
     "category": "karte-eichel-unter",
-    "m": "m-a2386c1d.mp3"
+    "m": "m-a2386c1d.mp3",
+    "f2": "f2-a2386c1d.mp3"
   },
   "Oichlunter!": {
     "text": "Oichlunter!",
     "speech": "Oichlunter!",
     "category": "karte-eichel-unter",
-    "m": "m-b576c0b1.mp3"
+    "m": "m-b576c0b1.mp3",
+    "f2": "f2-b576c0b1.mp3"
   },
   "Groosunter!": {
     "text": "Grasunter!",
     "speech": "Groosunter!",
     "category": "karte-gras-unter",
-    "m": "m-a4e5f2a3.mp3"
+    "m": "m-a4e5f2a3.mp3",
+    "f2": "f2-a4e5f2a3.mp3"
   },
   "Da Grüne Wennz!": {
     "text": "Da Grüne Wenz!",
     "speech": "Da Grüne Wennz!",
     "category": "karte-gras-unter",
-    "m": "m-e04d969b.mp3"
+    "m": "m-e04d969b.mp3",
+    "f2": "f2-e04d969b.mp3"
   },
   "Herzunter!": {
     "text": "Herzunter!",
     "speech": "Herzunter!",
     "category": "karte-herz-unter",
-    "m": "m-1bde7f9f.mp3"
+    "m": "m-1bde7f9f.mp3",
+    "f2": "f2-1bde7f9f.mp3"
   },
   "Mit an Unta gäihst niad unta!": {
     "text": "Mit an Unta gäihst niad unta!",
     "speech": "Mit an Unta gäihst niad unta!",
     "category": "karte-herz-unter",
-    "m": "m-23de1f25.mp3"
+    "m": "m-23de1f25.mp3",
+    "f2": "f2-23de1f25.mp3"
   },
   "Schellnunter!": {
     "text": "Schellnunter!",
     "speech": "Schellnunter!",
     "category": "karte-schellen-unter",
-    "m": "m-b9802eb9.mp3"
+    "m": "m-b9802eb9.mp3",
+    "f2": "f2-b9802eb9.mp3"
   },
   "Da kloane Wennz!": {
     "text": "Da kloane Wenz!",
     "speech": "Da kloane Wennz!",
     "category": "karte-schellen-unter",
-    "m": "m-af377422.mp3"
+    "m": "m-af377422.mp3",
+    "f2": "f2-af377422.mp3"
   },
   "An Eisenbahna!": {
     "text": "An Eisenbahna!",
     "speech": "An Eisenbahna!",
     "category": "karte-eichel-10",
-    "m": "m-e1c0d7d1.mp3"
+    "m": "m-e1c0d7d1.mp3",
+    "f2": "f2-e1c0d7d1.mp3"
   },
   "Oichl-Zehna!": {
     "text": "Oichl-Zehna!",
     "speech": "Oichl-Zehna!",
     "category": "karte-eichel-10",
-    "m": "m-4305fe7b.mp3"
+    "m": "m-4305fe7b.mp3",
+    "f2": "f2-4305fe7b.mp3"
   },
   "Zehn Aung!": {
     "text": "Zehn Aung!",
     "speech": "Zehn Aung!",
     "category": "karte-eichel-10",
-    "m": "m-13cac494.mp3"
+    "m": "m-13cac494.mp3",
+    "f2": "f2-13cac494.mp3"
   },
   "Groos-Zehna!": {
     "text": "Gras-Zehna!",
     "speech": "Groos-Zehna!",
     "category": "karte-gras-10",
-    "m": "m-f5812308.mp3"
+    "m": "m-f5812308.mp3",
+    "f2": "f2-f5812308.mp3"
   },
   "Herz-Zehna!": {
     "text": "Herz-Zehna!",
     "speech": "Herz-Zehna!",
     "category": "karte-herz-10",
-    "m": "m-c9189aeb.mp3"
+    "m": "m-c9189aeb.mp3",
+    "f2": "f2-c9189aeb.mp3"
   },
   "Schelln-Zehna!": {
     "text": "Schelln-Zehna!",
     "speech": "Schelln-Zehna!",
     "category": "karte-schellen-10",
-    "m": "m-f5744a75.mp3"
+    "m": "m-f5744a75.mp3",
+    "f2": "f2-f5744a75.mp3"
   },
   "Euchalia, die oide Waldschnepfe!": {
     "text": "Euchalia, die oide Waldschnepfe!",
     "speech": "Euchalia, die oide Waldschnepfe!",
     "category": "karte-eichel",
-    "m": "m-1c3f1a08.mp3"
+    "m": "m-1c3f1a08.mp3",
+    "f2": "f2-1c3f1a08.mp3"
   },
   "Oichl kummt!": {
     "text": "Oichl kummt!",
     "speech": "Oichl kummt!",
     "category": "karte-eichel",
-    "m": "m-a2ea3a42.mp3"
+    "m": "m-a2ea3a42.mp3",
+    "f2": "f2-a2ea3a42.mp3"
   },
   "A Oichl!": {
     "text": "A Oichl!",
     "speech": "A Oichl!",
     "category": "karte-eichel",
-    "m": "m-58dde04d.mp3"
+    "m": "m-58dde04d.mp3",
+    "f2": "f2-58dde04d.mp3"
   },
   "Grün is dro!": {
     "text": "Grün is dro!",
     "speech": "Grün is dro!",
     "category": "karte-gras",
-    "m": "m-3aad808c.mp3"
+    "m": "m-3aad808c.mp3",
+    "f2": "f2-3aad808c.mp3"
   },
   "A Groos!": {
     "text": "A Gras!",
     "speech": "A Groos!",
     "category": "karte-gras",
-    "m": "m-fed64208.mp3"
+    "m": "m-fed64208.mp3",
+    "f2": "f2-fed64208.mp3"
   },
   "Laub!": {
     "text": "Laub!",
     "speech": "Laub!",
     "category": "karte-gras",
-    "m": "m-d3fffdef.mp3"
+    "m": "m-d3fffdef.mp3",
+    "f2": "f2-d3fffdef.mp3"
   },
   "A Herzl!": {
     "text": "A Herzl!",
     "speech": "A Herzl!",
     "category": "karte-herz",
-    "m": "m-4bb9eb93.mp3"
+    "m": "m-4bb9eb93.mp3",
+    "f2": "f2-4bb9eb93.mp3"
   },
   "Rot is dro!": {
     "text": "Rot is dro!",
     "speech": "Rot is dro!",
     "category": "karte-herz",
-    "m": "m-d0faf490.mp3"
+    "m": "m-d0faf490.mp3",
+    "f2": "f2-d0faf490.mp3"
   },
   "Dou griagst a Schelln!": {
     "text": "Dou griagst a Schelln!",
     "speech": "Dou griagst a Schelln!",
     "category": "karte-schellen",
-    "m": "m-88772fed.mp3"
+    "m": "m-88772fed.mp3",
+    "f2": "f2-88772fed.mp3"
   },
   "A Schelln!": {
     "text": "A Schelln!",
     "speech": "A Schelln!",
     "category": "karte-schellen",
-    "m": "m-5e2de0e7.mp3"
+    "m": "m-5e2de0e7.mp3",
+    "f2": "f2-5e2de0e7.mp3"
   },
   "Schelln san ogsogt!": {
     "text": "Schelln san ogsogt!",
     "speech": "Schelln san ogsogt!",
     "category": "karte-schellen",
-    "m": "m-a2e75cf5.mp3"
+    "m": "m-a2e75cf5.mp3",
+    "f2": "f2-a2e75cf5.mp3"
   },
   "Trumpf is Trumpf!": {
     "text": "Trumpf is Trumpf!",
     "speech": "Trumpf is Trumpf!",
     "category": "karte-trumpf",
-    "m": "m-71452cfb.mp3"
+    "m": "m-71452cfb.mp3",
+    "f2": "f2-71452cfb.mp3"
   },
   "Dou vastehst an Spaß!": {
     "text": "Dou vastehst an Spaß!",
     "speech": "Dou vastehst an Spaß!",
     "category": "karte-trumpf",
-    "m": "m-0e709a3b.mp3"
+    "m": "m-0e709a3b.mp3",
+    "f2": "f2-0e709a3b.mp3"
   },
   "I stich!": {
     "text": "I stich!",
     "speech": "I stich!",
     "category": "karte-trumpf",
-    "m": "m-48685961.mp3"
+    "m": "m-48685961.mp3",
+    "f2": "f2-48685961.mp3"
   },
   "Trumpf draaf!": {
     "text": "Trumpf draaf!",
     "speech": "Trumpf draaf!",
     "category": "karte-trumpf",
-    "m": "m-3899cc0a.mp3"
+    "m": "m-3899cc0a.mp3",
+    "f2": "f2-3899cc0a.mp3"
   },
   "Des hob i no!": {
     "text": "Des hob i no!",
     "speech": "Des hob i no!",
     "category": "karte-trumpf",
-    "m": "m-b2684702.mp3"
+    "m": "m-b2684702.mp3",
+    "f2": "f2-b2684702.mp3"
   },
   "An Spatzn!": {
     "text": "An Spatzn!",
     "speech": "An Spatzn!",
     "category": "karte-spatz",
-    "m": "m-721fb459.mp3"
+    "m": "m-721fb459.mp3",
+    "f2": "f2-721fb459.mp3"
   },
   "A Lusche!": {
     "text": "A Lusche!",
     "speech": "A Lusche!",
     "category": "karte-spatz",
-    "m": "m-3e9d50ba.mp3"
+    "m": "m-3e9d50ba.mp3",
+    "f2": "f2-3e9d50ba.mp3"
   },
   "A Kracha!": {
     "text": "A Kracha!",
     "speech": "A Kracha!",
     "category": "karte-spatz",
-    "m": "m-19eb407b.mp3"
+    "m": "m-19eb407b.mp3",
+    "f2": "f2-19eb407b.mp3"
   },
   "Nix wert!": {
     "text": "Nix wert!",
     "speech": "Nix wert!",
     "category": "karte-spatz",
-    "m": "m-68b85b3b.mp3"
+    "m": "m-68b85b3b.mp3",
+    "f2": "f2-68b85b3b.mp3"
   },
   "An Ramsch!": {
     "text": "An Ramsch!",
     "speech": "An Ramsch!",
     "category": "karte-spatz",
-    "m": "m-c5c84ad5.mp3"
+    "m": "m-c5c84ad5.mp3",
+    "f2": "f2-c5c84ad5.mp3"
   },
   "Dea sticht!": {
     "text": "Dea sticht!",
     "speech": "Dea sticht!",
     "category": "unter",
-    "m": "m-dfc8370a.mp3"
+    "m": "m-dfc8370a.mp3",
+    "f2": "f2-dfc8370a.mp3"
   },
   "Den back i zsamm!": {
     "text": "Den back i zsamm!",
     "speech": "Den back i zsamm!",
     "category": "stich-gewonnen",
-    "m": "m-c497b4c5.mp3"
+    "m": "m-c497b4c5.mp3",
+    "f2": "f2-c497b4c5.mp3"
   },
   "Samma dabei!": {
     "text": "Samma dabei!",
     "speech": "Samma dabei!",
     "category": "stich-gewonnen",
-    "m": "m-ff75273c.mp3"
+    "m": "m-ff75273c.mp3",
+    "f2": "f2-ff75273c.mp3"
   },
   "Her damit!": {
     "text": "Her damit!",
     "speech": "Her damit!",
     "category": "stich-gewonnen",
-    "m": "m-e17a9935.mp3"
+    "m": "m-e17a9935.mp3",
+    "f2": "f2-e17a9935.mp3"
   },
   "So ghört si des!": {
     "text": "So ghört si des!",
     "speech": "So ghört si des!",
     "category": "stich-gewonnen",
-    "m": "m-26aa2f97.mp3"
+    "m": "m-26aa2f97.mp3",
+    "f2": "f2-26aa2f97.mp3"
   },
   "Den hob i!": {
     "text": "Den hob i!",
     "speech": "Den hob i!",
     "category": "stich-gewonnen",
-    "m": "m-cbf62f20.mp3"
+    "m": "m-cbf62f20.mp3",
+    "f2": "f2-cbf62f20.mp3"
   },
   "Meina!": {
     "text": "Meina!",
     "speech": "Meina!",
     "category": "stich-gewonnen",
-    "m": "m-be7ffcd7.mp3"
+    "m": "m-be7ffcd7.mp3",
+    "f2": "f2-be7ffcd7.mp3"
   },
   "Ghört mia!": {
     "text": "Ghört mia!",
     "speech": "Ghört mia!",
     "category": "stich-gewonnen",
-    "m": "m-b3ccc107.mp3"
+    "m": "m-b3ccc107.mp3",
+    "f2": "f2-b3ccc107.mp3"
   },
   "Jo mei!": {
     "text": "Jo mei!",
     "speech": "Jo mei!",
     "category": "stich-gewonnen",
-    "m": "m-0c870a07.mp3"
+    "m": "m-0c870a07.mp3",
+    "f2": "f2-0c870a07.mp3"
   },
   "Basst!": {
     "text": "Basst!",
     "speech": "Basst!",
     "category": "stich-gewonnen",
-    "m": "m-f83dfad3.mp3"
+    "m": "m-f83dfad3.mp3",
+    "f2": "f2-f83dfad3.mp3"
   },
   "So is recht!": {
     "text": "So is recht!",
     "speech": "So is recht!",
     "category": "stich-gewonnen",
-    "m": "m-aeb8dc1b.mp3"
+    "m": "m-aeb8dc1b.mp3",
+    "f2": "f2-aeb8dc1b.mp3"
   },
   "Guat gmacht!": {
     "text": "Guat gmacht!",
     "speech": "Guat gmacht!",
     "category": "stich-gewonnen",
-    "m": "m-d25ff24d.mp3"
+    "m": "m-d25ff24d.mp3",
+    "f2": "f2-d25ff24d.mp3"
   },
   "Wundabaa!": {
     "text": "Wundabaa!",
     "speech": "Wundabaa!",
     "category": "stich-gewonnen",
-    "m": "m-d3d12574.mp3"
+    "m": "m-d3d12574.mp3",
+    "f2": "f2-d3d12574.mp3"
   },
   "Na also!": {
     "text": "Na also!",
     "speech": "Na also!",
     "category": "stich-gewonnen",
-    "m": "m-96d60158.mp3"
+    "m": "m-96d60158.mp3",
+    "f2": "f2-96d60158.mp3"
   },
   "Sauwa!": {
     "text": "Sauwa!",
     "speech": "Sauwa!",
     "category": "stich-gewonnen",
-    "m": "m-73bc8756.mp3"
+    "m": "m-73bc8756.mp3",
+    "f2": "f2-73bc8756.mp3"
   },
   "Des war kloa!": {
     "text": "Des war kloa!",
     "speech": "Des war kloa!",
     "category": "stich-gewonnen",
-    "m": "m-db144c5b.mp3"
+    "m": "m-db144c5b.mp3",
+    "f2": "f2-db144c5b.mp3"
   },
   "Hehe!": {
     "text": "Hehe!",
     "speech": "Hehe!",
     "category": "stich-gewonnen",
-    "m": "m-8d3ad114.mp3"
+    "m": "m-8d3ad114.mp3",
+    "f2": "f2-8d3ad114.mp3"
   },
   "I nimm!": {
     "text": "I nimm!",
     "speech": "I nimm!",
     "category": "stich-gewonnen",
-    "m": "m-ccfc2efc.mp3"
+    "m": "m-ccfc2efc.mp3",
+    "f2": "f2-ccfc2efc.mp3"
   },
   "Zeffix!": {
     "text": "Zefix!",
     "speech": "Zeffix!",
     "category": "stich-verloren",
-    "m": "m-3614caad.mp3"
+    "m": "m-3614caad.mp3",
+    "f2": "f2-3614caad.mp3"
   },
   "Kruzifix!": {
     "text": "Kruzifix!",
     "speech": "Kruzifix!",
     "category": "stich-verloren",
-    "m": "m-0eaf30b0.mp3"
+    "m": "m-0eaf30b0.mp3",
+    "f2": "f2-0eaf30b0.mp3"
   },
   "Himmi Herrgott!": {
     "text": "Himmi Herrgott!",
     "speech": "Himmi Herrgott!",
     "category": "stich-verloren",
-    "m": "m-a270d85a.mp3"
+    "m": "m-a270d85a.mp3",
+    "f2": "f2-a270d85a.mp3"
   },
   "So a Schmarrn!": {
     "text": "So a Schmarrn!",
     "speech": "So a Schmarrn!",
     "category": "stich-verloren",
-    "m": "m-29eea967.mp3"
+    "m": "m-29eea967.mp3",
+    "f2": "f2-29eea967.mp3"
   },
   "Sakradi!": {
     "text": "Sakradi!",
     "speech": "Sakradi!",
     "category": "stich-verloren",
-    "m": "m-9182624d.mp3"
+    "m": "m-9182624d.mp3",
+    "f2": "f2-9182624d.mp3"
   },
   "Himmisakra!": {
     "text": "Himmisakra!",
     "speech": "Himmisakra!",
     "category": "stich-verloren",
-    "m": "m-be6954f6.mp3"
+    "m": "m-be6954f6.mp3",
+    "f2": "f2-be6954f6.mp3"
   },
   "Kreizbirnbam!": {
     "text": "Kreizbirnbam!",
     "speech": "Kreizbirnbam!",
     "category": "stich-verloren",
-    "m": "m-e478bd9e.mp3"
+    "m": "m-e478bd9e.mp3",
+    "f2": "f2-e478bd9e.mp3"
   },
   "Mei oh mei!": {
     "text": "Mei oh mei!",
     "speech": "Mei oh mei!",
     "category": "stich-verloren",
-    "m": "m-6cf8ad29.mp3"
+    "m": "m-6cf8ad29.mp3",
+    "f2": "f2-6cf8ad29.mp3"
   },
   "So a Mist!": {
     "text": "So a Mist!",
     "speech": "So a Mist!",
     "category": "stich-verloren",
-    "m": "m-d6589c01.mp3"
+    "m": "m-d6589c01.mp3",
+    "f2": "f2-d6589c01.mp3"
   },
   "Des derf ned woar sei!": {
     "text": "Des derf ned woar sei!",
     "speech": "Des derf ned woar sei!",
     "category": "stich-verloren",
-    "m": "m-639e59b9.mp3"
+    "m": "m-639e59b9.mp3",
+    "f2": "f2-639e59b9.mp3"
   },
   "A Wahnsinn!": {
     "text": "A Wahnsinn!",
     "speech": "A Wahnsinn!",
     "category": "stich-verloren",
-    "m": "m-e9f57e79.mp3"
+    "m": "m-e9f57e79.mp3",
+    "f2": "f2-e9f57e79.mp3"
   },
   "Sakrament!": {
     "text": "Sakrament!",
     "speech": "Sakrament!",
     "category": "stich-verloren",
-    "m": "m-1c1b88b2.mp3"
+    "m": "m-1c1b88b2.mp3",
+    "f2": "f2-1c1b88b2.mp3"
   },
   "Himmihergottnoamoi!": {
     "text": "Himmihergottnoamoi!",
     "speech": "Himmihergottnoamoi!",
     "category": "stich-verloren",
-    "m": "m-2b63918a.mp3"
+    "m": "m-2b63918a.mp3",
+    "f2": "f2-2b63918a.mp3"
   },
   "So a Sau!": {
     "text": "So a Sau!",
     "speech": "So a Sau!",
     "category": "stich-verloren",
-    "m": "m-68c3ebd1.mp3"
+    "m": "m-68c3ebd1.mp3",
+    "f2": "f2-68c3ebd1.mp3"
   },
   "Wos soi des?": {
     "text": "Wos soi des?",
     "speech": "Wos soi des?",
     "category": "stich-verloren",
-    "m": "m-117fc0c6.mp3"
+    "m": "m-117fc0c6.mp3",
+    "f2": "f2-117fc0c6.mp3"
   },
   "Na servas!": {
     "text": "Na servas!",
     "speech": "Na servas!",
     "category": "stich-verloren",
-    "m": "m-2065327b.mp3"
+    "m": "m-2065327b.mp3",
+    "f2": "f2-2065327b.mp3"
   },
   "Himmelherrschaftszeitn!": {
     "text": "Himmelherrschaftszeitn!",
     "speech": "Himmelherrschaftszeitn!",
     "category": "stich-verloren",
-    "m": "m-978910a1.mp3"
+    "m": "m-978910a1.mp3",
+    "f2": "f2-978910a1.mp3"
   },
   "Kreizdividomine!": {
     "text": "Kreizdividomine!",
     "speech": "Kreizdividomine!",
     "category": "stich-verloren",
-    "m": "m-d94b5078.mp3"
+    "m": "m-d94b5078.mp3",
+    "f2": "f2-d94b5078.mp3"
   },
   "Krumme Nuckel!": {
     "text": "Krumme Nuckel!",
     "speech": "Krumme Nuckel!",
     "category": "stich-verloren",
-    "m": "m-8c2edd22.mp3"
+    "m": "m-8c2edd22.mp3",
+    "f2": "f2-8c2edd22.mp3"
   },
   "A leck mi doch kreizweis am Oarsch!": {
     "text": "A leck mi doch kreizweis am Oarsch!",
     "speech": "A leck mi doch kreizweis am Oarsch!",
     "category": "stich-verloren",
-    "m": "m-f26e0077.mp3"
+    "m": "m-f26e0077.mp3",
+    "f2": "f2-f26e0077.mp3"
   },
   "I bin doch niad aaf da Brennsuppn daheagschwumma!": {
     "text": "I bin doch niad aaf da Brennsuppn daheagschwumma!",
     "speech": "I bin doch niad aaf da Brennsuppn daheagschwumma!",
     "category": "stich-verloren",
-    "m": "m-1bb7e875.mp3"
+    "m": "m-1bb7e875.mp3",
+    "f2": "f2-1bb7e875.mp3"
   },
   "Na dann schaugma moi!": {
     "text": "Na dann schaugma moi!",
     "speech": "Na dann schaugma moi!",
     "category": "spiel-start",
-    "m": "m-36d08904.mp3"
+    "m": "m-36d08904.mp3",
+    "f2": "f2-36d08904.mp3"
   },
   "Aaf gehts!": {
     "text": "Aaf gehts!",
     "speech": "Aaf gehts!",
     "category": "spiel-start",
-    "m": "m-8f07b980.mp3"
+    "m": "m-8f07b980.mp3",
+    "f2": "f2-8f07b980.mp3"
   },
   "Pack mas!": {
     "text": "Pack mas!",
     "speech": "Pack mas!",
     "category": "spiel-start",
-    "m": "m-99085e8d.mp3"
+    "m": "m-99085e8d.mp3",
+    "f2": "f2-99085e8d.mp3"
   },
   "Los gehts!": {
     "text": "Los gehts!",
     "speech": "Los gehts!",
     "category": "spiel-start",
-    "m": "m-99dc2e7a.mp3"
+    "m": "m-99dc2e7a.mp3",
+    "f2": "f2-99dc2e7a.mp3"
   },
   "Na, dann woi ma moi!": {
     "text": "Na, dann woi ma moi!",
     "speech": "Na, dann woi ma moi!",
     "category": "spiel-start",
-    "m": "m-73658c04.mp3"
+    "m": "m-73658c04.mp3",
+    "f2": "f2-73658c04.mp3"
   },
   "Schaugma moi, dann seng ma scho!": {
     "text": "Schaugma moi, dann seng ma scho!",
     "speech": "Schaugma moi, dann seng ma scho!",
     "category": "spiel-start",
-    "m": "m-c41c5826.mp3"
+    "m": "m-c41c5826.mp3",
+    "f2": "f2-c41c5826.mp3"
   },
   "Aaf d Plätze!": {
     "text": "Aaf d'Plätze!",
     "speech": "Aaf d Plätze!",
     "category": "spiel-start",
-    "m": "m-d4e44b5f.mp3"
+    "m": "m-d4e44b5f.mp3",
+    "f2": "f2-d4e44b5f.mp3"
   },
   "I bin bereit!": {
     "text": "I bin bereit!",
     "speech": "I bin bereit!",
     "category": "spiel-start",
-    "m": "m-5724ead5.mp3"
+    "m": "m-5724ead5.mp3",
+    "f2": "f2-5724ead5.mp3"
   },
   "Ha! Gwunna!": {
     "text": "Ha! Gwunna!",
     "speech": "Ha! Gwunna!",
     "category": "spiel-gewonnen",
-    "m": "m-cccd46b0.mp3"
+    "m": "m-cccd46b0.mp3",
+    "f2": "f2-cccd46b0.mp3"
   },
   "Des wars!": {
     "text": "Des wars!",
     "speech": "Des wars!",
     "category": "spiel-gewonnen",
-    "m": "m-8ec73ed6.mp3"
+    "m": "m-8ec73ed6.mp3",
+    "f2": "f2-8ec73ed6.mp3"
   },
   "So schauts aus!": {
     "text": "So schauts aus!",
     "speech": "So schauts aus!",
     "category": "spiel-gewonnen",
-    "m": "m-e90d1fe6.mp3"
+    "m": "m-e90d1fe6.mp3",
+    "f2": "f2-e90d1fe6.mp3"
   },
   "Ja mei, des war leicht!": {
     "text": "Ja mei, des war leicht!",
     "speech": "Ja mei, des war leicht!",
     "category": "spiel-gewonnen",
-    "m": "m-4aeeac16.mp3"
+    "m": "m-4aeeac16.mp3",
+    "f2": "f2-4aeeac16.mp3"
   },
   "Hob is doch gwusst!": {
     "text": "Hob is doch gwusst!",
     "speech": "Hob is doch gwusst!",
     "category": "spiel-gewonnen",
-    "m": "m-13f51bc6.mp3"
+    "m": "m-13f51bc6.mp3",
+    "f2": "f2-13f51bc6.mp3"
   },
   "Her mit da Kohle!": {
     "text": "Her mit da Kohle!",
     "speech": "Her mit da Kohle!",
     "category": "spiel-gewonnen",
-    "m": "m-5f257f73.mp3"
+    "m": "m-5f257f73.mp3",
+    "f2": "f2-5f257f73.mp3"
   },
   "Zohltog!": {
     "text": "Zohltog!",
     "speech": "Zohltog!",
     "category": "spiel-gewonnen",
-    "m": "m-38361b3e.mp3"
+    "m": "m-38361b3e.mp3",
+    "f2": "f2-38361b3e.mp3"
   },
   "Danke fürs Göld!": {
     "text": "Danke fürs Göld!",
     "speech": "Danke fürs Göld!",
     "category": "spiel-gewonnen",
-    "m": "m-9efed929.mp3"
+    "m": "m-9efed929.mp3",
+    "f2": "f2-9efed929.mp3"
   },
   "Sauwa gmacht!": {
     "text": "Sauwa gmacht!",
     "speech": "Sauwa gmacht!",
     "category": "spiel-gewonnen",
-    "m": "m-5e799772.mp3"
+    "m": "m-5e799772.mp3",
+    "f2": "f2-5e799772.mp3"
   },
   "A so a Gaudi!": {
     "text": "A so a Gaudi!",
     "speech": "A so a Gaudi!",
     "category": "spiel-gewonnen",
-    "m": "m-70453651.mp3"
+    "m": "m-70453651.mp3",
+    "f2": "f2-70453651.mp3"
   },
   "Kruzifix noamoi!": {
     "text": "Kruzifix noamoi!",
     "speech": "Kruzifix noamoi!",
     "category": "spiel-verloren",
-    "m": "m-c20508ad.mp3"
+    "m": "m-c20508ad.mp3",
+    "f2": "f2-c20508ad.mp3"
   },
   "Des nächste Moi!": {
     "text": "Des nächste Moi!",
     "speech": "Des nächste Moi!",
     "category": "spiel-verloren",
-    "m": "m-4d72bbfd.mp3"
+    "m": "m-4d72bbfd.mp3",
+    "f2": "f2-4d72bbfd.mp3"
   },
   "Mei, so gehts hoid!": {
     "text": "Mei, so gehts hoid!",
     "speech": "Mei, so gehts hoid!",
     "category": "spiel-verloren",
-    "m": "m-890dd397.mp3"
+    "m": "m-890dd397.mp3",
+    "f2": "f2-890dd397.mp3"
   },
   "Woaßt wos? Wurscht!": {
     "text": "Woaßt wos? Wurscht!",
     "speech": "Woaßt wos? Wurscht!",
     "category": "spiel-verloren",
-    "m": "m-38e5c06b.mp3"
+    "m": "m-38e5c06b.mp3",
+    "f2": "f2-38e5c06b.mp3"
   },
   "Des war Pech!": {
     "text": "Des war Pech!",
     "speech": "Des war Pech!",
     "category": "spiel-verloren",
-    "m": "m-cb1ab652.mp3"
+    "m": "m-cb1ab652.mp3",
+    "f2": "f2-cb1ab652.mp3"
   },
   "Nächstes Moi!": {
     "text": "Nächstes Moi!",
     "speech": "Nächstes Moi!",
     "category": "spiel-verloren",
-    "m": "m-8c33a6bc.mp3"
+    "m": "m-8c33a6bc.mp3",
+    "f2": "f2-8c33a6bc.mp3"
   },
   "A so a Schmarrn!": {
     "text": "A so a Schmarrn!",
     "speech": "A so a Schmarrn!",
     "category": "spiel-verloren",
-    "m": "m-1b725bd8.mp3"
+    "m": "m-1b725bd8.mp3",
+    "f2": "f2-1b725bd8.mp3"
   },
   "Des zoi i ned!": {
     "text": "Des zoi i ned!",
     "speech": "Des zoi i ned!",
     "category": "spiel-verloren",
-    "m": "m-f8d8ba9d.mp3"
+    "m": "m-f8d8ba9d.mp3",
+    "f2": "f2-f8d8ba9d.mp3"
   },
   "I glaabs ned!": {
     "text": "I glaabs ned!",
     "speech": "I glaabs ned!",
     "category": "spiel-verloren",
-    "m": "m-e78ec2a4.mp3"
+    "m": "m-e78ec2a4.mp3",
+    "f2": "f2-e78ec2a4.mp3"
   },
   "Wos für a Bledsinn!": {
     "text": "Wos für a Bledsinn!",
     "speech": "Wos für a Bledsinn!",
     "category": "spiel-verloren",
-    "m": "m-7c72b876.mp3"
+    "m": "m-7c72b876.mp3",
+    "f2": "f2-7c72b876.mp3"
   },
   "Du!": {
     "text": "Du!",
     "speech": "Du!",
     "category": "du-gesagt",
-    "m": "m-c064fa1e.mp3"
+    "m": "m-c064fa1e.mp3",
+    "f2": "f2-c064fa1e.mp3"
   },
   "Du! Des packst ned!": {
     "text": "Du! Des packst ned!",
     "speech": "Du! Des packst ned!",
     "category": "du-gesagt",
-    "m": "m-5d82f3c6.mp3"
+    "m": "m-5d82f3c6.mp3",
+    "f2": "f2-5d82f3c6.mp3"
   },
   "Du! I glaabs ned!": {
     "text": "Du! I glaabs ned!",
     "speech": "Du! I glaabs ned!",
     "category": "du-gesagt",
-    "m": "m-8079febf.mp3"
+    "m": "m-8079febf.mp3",
+    "f2": "f2-8079febf.mp3"
   },
   "Kontra! Du!": {
     "text": "Kontra! Du!",
     "speech": "Kontra! Du!",
     "category": "du-gesagt",
-    "m": "m-a355ce9f.mp3"
+    "m": "m-a355ce9f.mp3",
+    "f2": "f2-a355ce9f.mp3"
   },
   "Reh!": {
     "text": "Re!",
     "speech": "Reh!",
     "category": "re-gesagt",
-    "m": "m-1084e73c.mp3"
+    "m": "m-1084e73c.mp3",
+    "f2": "f2-1084e73c.mp3"
   },
   "Reh! Des pack i locka!": {
     "text": "Re! Des pack i locka!",
     "speech": "Reh! Des pack i locka!",
     "category": "re-gesagt",
-    "m": "m-f4becde6.mp3"
+    "m": "m-f4becde6.mp3",
+    "f2": "f2-f4becde6.mp3"
   },
   "Reh! Schaugma moi!": {
     "text": "Re! Schaugma moi!",
     "speech": "Reh! Schaugma moi!",
     "category": "re-gesagt",
-    "m": "m-f9d69ef1.mp3"
+    "m": "m-f9d69ef1.mp3",
+    "f2": "f2-f9d69ef1.mp3"
   },
   "I leg!": {
     "text": "I leg!",
     "speech": "I leg!",
     "category": "legen-ja",
-    "m": "m-730ebdab.mp3"
+    "m": "m-730ebdab.mp3",
+    "f2": "f2-730ebdab.mp3"
   },
   "Des verdoppel ma!": {
     "text": "Des verdoppel ma!",
     "speech": "Des verdoppel ma!",
     "category": "legen-ja",
-    "m": "m-20b37bb3.mp3"
+    "m": "m-20b37bb3.mp3",
+    "f2": "f2-20b37bb3.mp3"
   },
   "Dou bin i dabei!": {
     "text": "Dou bin i dabei!",
     "speech": "Dou bin i dabei!",
     "category": "legen-ja",
-    "m": "m-03f4f04a.mp3"
+    "m": "m-03f4f04a.mp3",
+    "f2": "f2-03f4f04a.mp3"
   },
   "Des schaut guat aus!": {
     "text": "Des schaut guat aus!",
     "speech": "Des schaut guat aus!",
     "category": "legen-ja",
-    "m": "m-ab999cc8.mp3"
+    "m": "m-ab999cc8.mp3",
+    "f2": "f2-ab999cc8.mp3"
   },
   "Na, des lass i!": {
     "text": "Na, des lass i!",
     "speech": "Na, des lass i!",
     "category": "legen-nein",
-    "m": "m-1b930e21.mp3"
+    "m": "m-1b930e21.mp3",
+    "f2": "f2-1b930e21.mp3"
   },
   "I leg ned!": {
     "text": "I leg ned!",
     "speech": "I leg ned!",
     "category": "legen-nein",
-    "m": "m-9b718068.mp3"
+    "m": "m-9b718068.mp3",
+    "f2": "f2-9b718068.mp3"
   },
   "Ohne mi!": {
     "text": "Ohne mi!",
     "speech": "Ohne mi!",
     "category": "legen-nein",
-    "m": "m-b4cee93e.mp3"
+    "m": "m-b4cee93e.mp3",
+    "f2": "f2-b4cee93e.mp3"
   },
   "Des is ma z riskant!": {
     "text": "Des is ma z'riskant!",
     "speech": "Des is ma z riskant!",
     "category": "legen-nein",
-    "m": "m-d5bd5ec7.mp3"
+    "m": "m-d5bd5ec7.mp3",
+    "f2": "f2-d5bd5ec7.mp3"
   },
   "Schaugma moi!": {
     "text": "Schaugma moi!",
     "speech": "Schaugma moi!",
     "category": "allgemein",
-    "m": "m-9ec25b81.mp3"
+    "m": "m-9ec25b81.mp3",
+    "f2": "f2-9ec25b81.mp3"
   },
   "Hmm...": {
     "text": "Hmm...",
     "speech": "Hmm...",
     "category": "allgemein",
-    "m": "m-de0f1abf.mp3"
+    "m": "m-de0f1abf.mp3",
+    "f2": "f2-de0f1abf.mp3"
   },
   "Interessant!": {
     "text": "Interessant!",
     "speech": "Interessant!",
     "category": "allgemein",
-    "m": "m-536669f1.mp3"
+    "m": "m-536669f1.mp3",
+    "f2": "f2-536669f1.mp3"
   },
   "Aha!": {
     "text": "Aha!",
     "speech": "Aha!",
     "category": "allgemein",
-    "m": "m-faeb225d.mp3"
+    "m": "m-faeb225d.mp3",
+    "f2": "f2-faeb225d.mp3"
   },
   "So so!": {
     "text": "So so!",
     "speech": "So so!",
     "category": "allgemein",
-    "m": "m-405b30a6.mp3"
+    "m": "m-405b30a6.mp3",
+    "f2": "f2-405b30a6.mp3"
   },
   "Oha!": {
     "text": "Oha!",
     "speech": "Oha!",
     "category": "allgemein",
-    "m": "m-aabb8b28.mp3"
+    "m": "m-aabb8b28.mp3",
+    "f2": "f2-aabb8b28.mp3"
   },
   "Back nan owa vom Moped!": {
     "text": "Back nan owa vom Moped!",
     "speech": "Back nan owa vom Moped!",
     "category": "mitspieler-auffordern",
-    "m": "m-10db346e.mp3"
+    "m": "m-10db346e.mp3",
+    "f2": "f2-10db346e.mp3"
   },
   "Stich eam!": {
     "text": "Stich eam!",
     "speech": "Stich eam!",
     "category": "mitspieler-auffordern",
-    "m": "m-54af91d6.mp3"
+    "m": "m-54af91d6.mp3",
+    "f2": "f2-54af91d6.mp3"
   },
   "Na moch scho!": {
     "text": "Na moch scho!",
     "speech": "Na moch scho!",
     "category": "mitspieler-auffordern",
-    "m": "m-cc9e0b65.mp3"
+    "m": "m-cc9e0b65.mp3",
+    "f2": "f2-cc9e0b65.mp3"
   },
   "Do mou wos her!": {
     "text": "Do mou wos her!",
     "speech": "Do mou wos her!",
     "category": "mitspieler-auffordern",
-    "m": "m-31fd35ea.mp3"
+    "m": "m-31fd35ea.mp3",
+    "f2": "f2-31fd35ea.mp3"
   },
   "Hau eam weg!": {
     "text": "Hau eam weg!",
     "speech": "Hau eam weg!",
     "category": "mitspieler-auffordern",
-    "m": "m-02376481.mp3"
+    "m": "m-02376481.mp3",
+    "f2": "f2-02376481.mp3"
   },
   "Nimm eam mit!": {
     "text": "Nimm eam mit!",
     "speech": "Nimm eam mit!",
     "category": "mitspieler-auffordern",
-    "m": "m-f2e624dc.mp3"
+    "m": "m-f2e624dc.mp3",
+    "f2": "f2-f2e624dc.mp3"
   },
   "Des is deina!": {
     "text": "Des is deina!",
     "speech": "Des is deina!",
     "category": "mitspieler-auffordern",
-    "m": "m-3db79adb.mp3"
+    "m": "m-3db79adb.mp3",
+    "f2": "f2-3db79adb.mp3"
   },
   "Na pack scho zua!": {
     "text": "Na pack scho zua!",
     "speech": "Na pack scho zua!",
     "category": "mitspieler-auffordern",
-    "m": "m-6631d0af.mp3"
+    "m": "m-6631d0af.mp3",
+    "f2": "f2-6631d0af.mp3"
   },
   "Wos spüllst na du heid wiedda für an Schmarrn zsamm!": {
     "text": "Wos spüllst na du heid wiedda für an Schmarrn zsamm!",
     "speech": "Wos spüllst na du heid wiedda für an Schmarrn zsamm!",
     "category": "mitspieler-verpasst",
-    "m": "m-71815041.mp3"
+    "m": "m-71815041.mp3",
+    "f2": "f2-71815041.mp3"
   },
   "Host du an Vogel?": {
     "text": "Host du an Vogel?",
     "speech": "Host du an Vogel?",
     "category": "mitspieler-verpasst",
-    "m": "m-76fa5b32.mp3"
+    "m": "m-76fa5b32.mp3",
+    "f2": "f2-76fa5b32.mp3"
   },
   "Des waar doch deina gwesn!": {
     "text": "Des waar doch deina gwesn!",
     "speech": "Des waar doch deina gwesn!",
     "category": "mitspieler-verpasst",
-    "m": "m-07215987.mp3"
+    "m": "m-07215987.mp3",
+    "f2": "f2-07215987.mp3"
   },
   "Bist du deppad?": {
     "text": "Bist du deppad?",
     "speech": "Bist du deppad?",
     "category": "mitspieler-verpasst",
-    "m": "m-8400f8b4.mp3"
+    "m": "m-8400f8b4.mp3",
+    "f2": "f2-8400f8b4.mp3"
   },
   "Wos soi na des?": {
     "text": "Wos soi na des?",
     "speech": "Wos soi na des?",
     "category": "mitspieler-verpasst",
-    "m": "m-423a54e0.mp3"
+    "m": "m-423a54e0.mp3",
+    "f2": "f2-423a54e0.mp3"
   },
   "Warum stichst na ned?": {
     "text": "Warum stichst na ned?",
     "speech": "Warum stichst na ned?",
     "category": "mitspieler-verpasst",
-    "m": "m-f9951d93.mp3"
+    "m": "m-f9951d93.mp3",
+    "f2": "f2-f9951d93.mp3"
   },
   "Du hättst doch an Trumpf ghod!": {
     "text": "Du hättst doch an Trumpf ghod!",
     "speech": "Du hättst doch an Trumpf ghod!",
     "category": "mitspieler-verpasst",
-    "m": "m-9b8c010a.mp3"
+    "m": "m-9b8c010a.mp3",
+    "f2": "f2-9b8c010a.mp3"
   },
   "Do schau eam o, is a heid wiedda guad drauf da Burschi!": {
     "text": "Do schau eam o, is a heid wiedda guad drauf da Burschi!",
     "speech": "Do schau eam o, is a heid wiedda guad drauf da Burschi!",
     "category": "mitspieler-serie",
-    "m": "m-bb08dea5.mp3"
+    "m": "m-bb08dea5.mp3",
+    "f2": "f2-bb08dea5.mp3"
   },
   "Der is heid ned zum Holdna!": {
     "text": "Der is heid ned zum Holdna!",
     "speech": "Der is heid ned zum Holdna!",
     "category": "mitspieler-serie",
-    "m": "m-b232b2e8.mp3"
+    "m": "m-b232b2e8.mp3",
+    "f2": "f2-b232b2e8.mp3"
   },
   "Wos geht na do ob?": {
     "text": "Wos geht na do ob?",
     "speech": "Wos geht na do ob?",
     "category": "mitspieler-serie",
-    "m": "m-f3efe617.mp3"
+    "m": "m-f3efe617.mp3",
+    "f2": "f2-f3efe617.mp3"
   },
   "Da brennt heid da Huat!": {
     "text": "Da brennt heid da Huat!",
     "speech": "Da brennt heid da Huat!",
     "category": "mitspieler-serie",
-    "m": "m-29ca1244.mp3"
+    "m": "m-29ca1244.mp3",
+    "f2": "f2-29ca1244.mp3"
   },
   "Der hod heid an Lauf!": {
     "text": "Der hod heid an Lauf!",
     "speech": "Der hod heid an Lauf!",
     "category": "mitspieler-serie",
-    "m": "m-d45aee23.mp3"
+    "m": "m-d45aee23.mp3",
+    "f2": "f2-d45aee23.mp3"
   },
   "Oida, der räumt ab!": {
     "text": "Oida, der räumt ab!",
     "speech": "Oida, der räumt ab!",
     "category": "mitspieler-serie",
-    "m": "m-b39501b9.mp3"
+    "m": "m-b39501b9.mp3",
+    "f2": "f2-b39501b9.mp3"
   },
   "Na heast, ned schon wieder!": {
     "text": "Na heast, ned schon wieder!",
     "speech": "Na heast, ned schon wieder!",
     "category": "mitspieler-serie",
-    "m": "m-4561c36a.mp3"
+    "m": "m-4561c36a.mp3",
+    "f2": "f2-4561c36a.mp3"
   },
   "Der is ja unaufhaltsam!": {
     "text": "Der is ja unaufhaltsam!",
     "speech": "Der is ja unaufhaltsam!",
     "category": "mitspieler-serie",
-    "m": "m-ba4efbce.mp3"
+    "m": "m-ba4efbce.mp3",
+    "f2": "f2-ba4efbce.mp3"
   },
   "Au weh!": {
     "text": "Au weh!",
     "speech": "Au weh!",
     "category": "mitspieler-verschenkt",
-    "m": "m-17d2bc00.mp3"
+    "m": "m-17d2bc00.mp3",
+    "f2": "f2-17d2bc00.mp3"
   },
   "Des duad weh!": {
     "text": "Des duad weh!",
     "speech": "Des duad weh!",
     "category": "mitspieler-verschenkt",
-    "m": "m-d7373be5.mp3"
+    "m": "m-d7373be5.mp3",
+    "f2": "f2-d7373be5.mp3"
   },
   "Wos macha ma na jetzt?": {
     "text": "Wos macha ma na jetzt?",
     "speech": "Wos macha ma na jetzt?",
     "category": "mitspieler-verschenkt",
-    "m": "m-d4f17238.mp3"
+    "m": "m-d4f17238.mp3",
+    "f2": "f2-d4f17238.mp3"
   },
   "Na Servas!": {
     "text": "Na Servas!",
     "speech": "Na Servas!",
     "category": "mitspieler-verschenkt",
-    "m": "m-473ee668.mp3"
+    "m": "m-473ee668.mp3",
+    "f2": "f2-473ee668.mp3"
   },
   "Des is bitter!": {
     "text": "Des is bitter!",
     "speech": "Des is bitter!",
     "category": "mitspieler-verschenkt",
-    "m": "m-35453bd8.mp3"
+    "m": "m-35453bd8.mp3",
+    "f2": "f2-35453bd8.mp3"
   },
   "Himmi!": {
     "text": "Himmi!",
     "speech": "Himmi!",
     "category": "mitspieler-verschenkt",
-    "m": "m-7a04578e.mp3"
+    "m": "m-7a04578e.mp3",
+    "f2": "f2-7a04578e.mp3"
   },
   "Oje oje!": {
     "text": "Oje oje!",
     "speech": "Oje oje!",
     "category": "mitspieler-verschenkt",
-    "m": "m-58238e70.mp3"
+    "m": "m-58238e70.mp3",
+    "f2": "f2-58238e70.mp3"
   },
   "Ah, dou sans zsamm!": {
     "text": "Ah, dou sans zsamm!",
     "speech": "Ah, dou sans zsamm!",
     "category": "mitspieler-partner",
-    "m": "m-0a9b2cfd.mp3"
+    "m": "m-0a9b2cfd.mp3",
+    "f2": "f2-0a9b2cfd.mp3"
   },
   "Jetzt wissma Bescheid!": {
     "text": "Jetzt wissma Bescheid!",
     "speech": "Jetzt wissma Bescheid!",
     "category": "mitspieler-partner",
-    "m": "m-70716298.mp3"
+    "m": "m-70716298.mp3",
+    "f2": "f2-70716298.mp3"
   },
   "Aso, aso...": {
     "text": "Aso, aso...",
     "speech": "Aso, aso...",
     "category": "mitspieler-partner",
-    "m": "m-16272a38.mp3"
+    "m": "m-16272a38.mp3",
+    "f2": "f2-16272a38.mp3"
   },
   "Na schaug o!": {
     "text": "Na schaug o!",
     "speech": "Na schaug o!",
     "category": "mitspieler-partner",
-    "m": "m-0ac90a0f.mp3"
+    "m": "m-0ac90a0f.mp3",
+    "f2": "f2-0ac90a0f.mp3"
   },
   "Des hob i ma denkt!": {
     "text": "Des hob i ma denkt!",
     "speech": "Des hob i ma denkt!",
     "category": "mitspieler-partner",
-    "m": "m-a347f225.mp3"
+    "m": "m-a347f225.mp3",
+    "f2": "f2-a347f225.mp3"
   },
   "Wär i ned drauf kumma!": {
     "text": "Wär i ned drauf kumma!",
     "speech": "Wär i ned drauf kumma!",
     "category": "mitspieler-partner",
-    "m": "m-ffe60d3e.mp3"
+    "m": "m-ffe60d3e.mp3",
+    "f2": "f2-ffe60d3e.mp3"
   },
   "Und aus is und gor is, weils wohr is!": {
     "text": "Und aus is und gor is, weils wohr is!",

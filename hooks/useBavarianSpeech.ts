@@ -33,63 +33,64 @@ export function useBavarianSpeech() {
     unlockAudio();
   }, []);
 
-  const speakAnsage = useCallback((ansage: string, gesuchteAss?: string) => {
+  const speakAnsage = useCallback((ansage: string, gesuchteAss?: string, playerName?: string) => {
     const phrase = getAnsageText(ansage, gesuchteAss);
-    speak(phrase.speech);
+    speak(phrase.speech, 0.9, playerName);
     return phrase.text;
   }, []);
 
-  const speakStichGewonnen = useCallback(() => {
+  const speakStichGewonnen = useCallback((playerName?: string) => {
     const phrase = randomPhrase(STICH_GEWONNEN);
-    speak(phrase.speech);
+    speak(phrase.speech, 0.9, playerName);
     return phrase.text;
   }, []);
 
-  const speakStichVerloren = useCallback(() => {
+  const speakStichVerloren = useCallback((playerName?: string) => {
     const phrase = randomPhrase(STICH_VERLOREN);
-    speak(phrase.speech, 0.85);
+    speak(phrase.speech, 0.85, playerName);
     return phrase.text;
   }, []);
 
-  const speakSpielStart = useCallback(() => {
+  const speakSpielStart = useCallback((playerName?: string) => {
     const phrase = randomPhrase(SPIEL_START);
-    speak(phrase.speech);
+    speak(phrase.speech, 0.9, playerName);
     return phrase.text;
   }, []);
 
-  const speakSpielGewonnen = useCallback(() => {
+  const speakSpielGewonnen = useCallback((playerName?: string) => {
     const phrase = randomPhrase(SPIEL_GEWONNEN);
-    speak(phrase.speech, 1.1);
+    speak(phrase.speech, 1.1, playerName);
     return phrase.text;
   }, []);
 
-  const speakSpielVerloren = useCallback(() => {
+  const speakSpielVerloren = useCallback((playerName?: string) => {
     const phrase = randomPhrase(SPIEL_VERLOREN);
-    speak(phrase.speech, 0.8);
+    speak(phrase.speech, 0.8, playerName);
     return phrase.text;
   }, []);
 
-  const speakDu = useCallback(() => {
+  const speakDu = useCallback((playerName?: string) => {
     const phrase = randomPhrase(DU_GESAGT);
-    speak(phrase.speech, 1.2);
+    speak(phrase.speech, 1.2, playerName);
     return phrase.text;
   }, []);
 
-  const speakRe = useCallback(() => {
+  const speakRe = useCallback((playerName?: string) => {
     const phrase = randomPhrase(RE_GESAGT);
-    speak(phrase.speech, 1.2);
+    speak(phrase.speech, 1.2, playerName);
     return phrase.text;
   }, []);
 
   // Mitspieler-Reaktion abspielen
   const speakMitspielerReaktion = useCallback((reaktion: MitspielerReaktion) => {
-    speak(reaktion.phrase.speech);
+    // Verwende den Namen des Sprechers für die richtige Stimme
+    speak(reaktion.phrase.speech, 0.9, reaktion.sprecherName);
     return reaktion.phrase.text;
   }, []);
 
   // Beliebigen Spruch abspielen
-  const speakPhrase = useCallback((phrase: BavarianPhrase) => {
-    speak(phrase.speech);
+  const speakPhrase = useCallback((phrase: BavarianPhrase, playerName?: string) => {
+    speak(phrase.speech, 0.9, playerName);
     return phrase.text;
   }, []);
 

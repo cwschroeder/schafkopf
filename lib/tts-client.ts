@@ -111,6 +111,26 @@ export type VoiceKey = 'm1' | 'm2' | 'f1' | 'f2' | 'm' | 'f';
 // Standard-Stimme (kann vom Spieler gesetzt werden)
 let defaultVoice: VoiceKey = 'm1';
 
+// Bot-Stimmen-Zuordnung
+// Jeder Bot bekommt eine eigene Stimme
+const BOT_VOICES: Record<string, VoiceKey> = {
+  'Bot Max': 'm1',      // Männlich 1
+  'Bot Sepp': 'm1',     // Männlich 1 (nur eine männliche Stimme verfügbar)
+  'Bot Vroni': 'f1',    // Weiblich 1
+  'Bot Hans': 'm1',     // Männlich 1
+};
+
+/**
+ * Gibt die passende Stimme für einen Spieler zurück
+ * Für Bots basierend auf Namen, sonst die Standard-Stimme
+ */
+export function getVoiceForPlayer(playerName?: string): VoiceKey {
+  if (playerName && BOT_VOICES[playerName]) {
+    return BOT_VOICES[playerName];
+  }
+  return defaultVoice;
+}
+
 export function setDefaultVoice(voice: VoiceKey) {
   defaultVoice = voice;
 }

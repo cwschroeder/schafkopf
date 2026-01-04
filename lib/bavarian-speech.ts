@@ -1,6 +1,6 @@
 // Bayerische Sprachausgabe für Schafkopf
 
-import { playBavarianAudio, initAudio, setDefaultVoice, getDefaultVoice, stopAudio } from './tts-client';
+import { playBavarianAudio, initAudio, setDefaultVoice, getDefaultVoice, stopAudio, VoiceKey, getVoiceForPlayer } from './tts-client';
 
 export interface BavarianPhrase {
   text: string;      // Anzeigetext
@@ -559,24 +559,28 @@ let isAudioUnlocked = false;
  * Spielt einen bayerischen Spruch ab
  * @param text Der TTS-Text (z.B. "Wennz!")
  * @param _rate Wird ignoriert (für Rückwärtskompatibilität)
+ * @param playerName Optional: Spielername für Bot-spezifische Stimme
  */
-export function speak(text: string, _rate: number = 0.9): void {
+export function speak(text: string, _rate: number = 0.9, playerName?: string): void {
   if (typeof window === 'undefined') {
     return;
   }
 
-  // Audio abspielen
-  playBavarianAudio(text).catch(e => {
+  // Stimme basierend auf Spieler ermitteln
+  const voice = getVoiceForPlayer(playerName);
+
+  // Audio abspielen mit passender Stimme
+  playBavarianAudio(text, voice).catch(e => {
     console.warn('Failed to play audio:', e);
   });
 }
 
 // Setzt die Standard-Stimme für einen Spieler
-export function setPlayerVoice(voice: 'm' | 'f'): void {
+export function setPlayerVoice(voice: VoiceKey): void {
   setDefaultVoice(voice);
 }
 
-export function getPlayerVoice(): 'm' | 'f' {
+export function getPlayerVoice(): VoiceKey {
   return getDefaultVoice();
 }
 

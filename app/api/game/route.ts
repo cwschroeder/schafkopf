@@ -45,6 +45,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Spiel nicht gefunden' }, { status: 404 });
     }
 
+    // Prüfe ob Spieler im State ist
+    if (playerId) {
+      const spielerImState = state.spieler.find(s => s.id === playerId);
+      if (!spielerImState) {
+        console.warn('[API/game GET] Spieler nicht im State gefunden!', {
+          playerId,
+          allSpielerIds: state.spieler.map(s => s.id),
+        });
+        // 403 statt 404 - Spiel existiert, aber Spieler hat keinen Zugriff
+        return NextResponse.json({
+          error: 'Spieler nicht in diesem Spiel',
+          code: 'PLAYER_NOT_IN_GAME'
+        }, { status: 403 });
+      }
+
+      // Debug: Prüfe auf versteckte Karten im RAW-State
+      const rawHiddenCards = spielerImState.hand.filter(k => k.id === 'hidden');
+      if (rawHiddenCards.length > 0) {
+        console.error('[API/game GET] KRITISCHER BUG: RAW-State enthält bereits versteckte Karten!', {
+          playerId,
+          hiddenCount: rawHiddenCards.length,
+          allCardIds: spielerImState.hand.map(k => k.id),
+          phase: state.phase,
+        });
+      }
+    }
+
     // Spielersicht zurückgeben (versteckt andere Karten)
     const sicht = playerId ? getSpielerSicht(state, playerId) : state;
     return NextResponse.json(sicht);
@@ -387,6 +414,7 @@ async function processeBotAnsagen(roomId: string, state: SpielState | undefined)
 
     await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
       botId: aktuellerSpieler.id,
+      botName: aktuellerSpieler.name,
       action: 'ansage',
       ansage,
       gesuchteAss,
@@ -454,6 +482,7 @@ async function processeBotLegen(roomId: string, state: SpielState | undefined) {
 
     await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
       botId: bot.id,
+      botName: bot.name,
       action: 'legen',
       willLegen,
     });
@@ -524,6 +553,7 @@ async function processeBotSpielzuege(roomId: string, state: SpielState | undefin
 
     await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
       botId: aktuellerSpieler.id,
+      botName: aktuellerSpieler.name,
       action: 'spielzug',
       karteId,
     });
@@ -582,6 +612,7 @@ async function processeBotSpielzuege(roomId: string, state: SpielState | undefin
       // Event senden damit Client weiß, dass etwas schief ging
       await triggerPusher(roomChannel(roomId), EVENTS.BOT_ACTION, {
         botId: aktuellerSpieler.id,
+        botName: aktuellerSpieler.name,
         action: 'error',
         message: 'Bot konnte nicht spielen',
       });

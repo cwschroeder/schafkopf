@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useGameStore, loadPlayerFromStorage } from '@/lib/store';
 import { getPusherClient, EVENTS, roomChannel, subscribeToChannel, unsubscribeFromChannel } from '@/lib/pusher';
 import { SpielState, Raum, Ansage, Farbe, SpielErgebnis } from '@/lib/schafkopf/types';
@@ -24,11 +24,14 @@ import {
   MitspielerReaktion,
 } from '@/lib/mitspieler-reaktionen';
 import { AUGEN } from '@/lib/schafkopf/cards';
+import FeedbackButton from '@/components/feedback/FeedbackButton';
 
 export default function GamePage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const roomId = params.roomId as string;
+  const hintsEnabled = searchParams.get('hints') === 'true';
 
   const {
     playerId,
@@ -52,6 +55,7 @@ export default function GamePage() {
   const [speechBubble, setSpeechBubble] = useState<{ text: string; playerId: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false); // Für sofortiges Button-Feedback
   const [roomNotFound, setRoomNotFound] = useState(false); // Raum existiert nicht
+  const [notInGame, setNotInGame] = useState(false); // Spieler ist nicht in diesem Spiel
   const [linkCopied, setLinkCopied] = useState(false); // Feedback für Link kopiert
   const skipErgebnisReloadRef = useRef(false); // Verhindert Reload nach "Neue Runde" bis neues RUNDE_ENDE
 
@@ -177,7 +181,17 @@ export default function GamePage() {
 
       // Spielzustand laden (falls Spiel bereits läuft)
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
-        .then(res => res.ok ? res.json() : null)
+        .then(async res => {
+          if (res.ok) return res.json();
+          // 403 = Spieler nicht in diesem Spiel
+          if (res.status === 403) {
+            const data = await res.json();
+            if (data.code === 'PLAYER_NOT_IN_GAME') {
+              setNotInGame(true);
+            }
+          }
+          return null;
+        })
         .then(state => {
           if (state) {
             gameFound = true;
@@ -220,6 +234,8 @@ export default function GamePage() {
           if (gameRes.ok) {
             const state = await gameRes.json();
             setGameState(state);
+          } else if (gameRes.status === 403) {
+            setNotInGame(true);
           }
         } catch {}
       }, 1000);
@@ -275,25 +291,50 @@ export default function GamePage() {
       resetStichHistorie();
     };
 
+    // Debug: Prüfe empfangenen State auf versteckte Karten
+    const debugCheckState = (state: SpielState, source: string) => {
+      const mySpieler = state.spieler.find((s: { id: string }) => s.id === playerId);
+      if (mySpieler) {
+        const hiddenCards = mySpieler.hand.filter((k: { id: string }) => k.id === 'hidden');
+        if (hiddenCards.length > 0) {
+          console.error(`[${source}] BUG: Eigene Karten sind versteckt!`, {
+            playerId,
+            hiddenCount: hiddenCards.length,
+            allCardIds: mySpieler.hand.map((k: { id: string }) => k.id),
+            phase: state.phase,
+          });
+        }
+      }
+    };
+
     // Spiel-Events Handler
     const handleGameState = () => {
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
-        .then(fullState => setGameState(fullState))
+        .then(fullState => {
+          debugCheckState(fullState, 'handleGameState');
+          setGameState(fullState);
+        })
         .catch(console.error);
     };
 
     const handleLegen = () => {
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
-        .then(state => setGameState(state))
+        .then(state => {
+          debugCheckState(state, 'handleLegen');
+          setGameState(state);
+        })
         .catch(console.error);
     };
 
     const handleAnsage = () => {
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
-        .then(state => setGameState(state))
+        .then(state => {
+          debugCheckState(state, 'handleAnsage');
+          setGameState(state);
+        })
         .catch(console.error);
     };
 
@@ -301,6 +342,7 @@ export default function GamePage() {
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
         .then(state => {
+          debugCheckState(state, 'handleKarteGespielt');
           setGameState(state);
 
           // Prüfe: Partner gefunden? (bei Sauspiel, wenn gesuchte Sau gespielt wird)
@@ -347,7 +389,8 @@ export default function GamePage() {
             // Fallback: Gewinner-Bot spricht wenn Bot gewinnt
             const gewinnerSpieler = state.spieler.find((s: { id: string }) => s.id === gewinner);
             if (gewinnerSpieler?.isBot) {
-              const text = speakStichGewonnen();
+              // Bot-Name für Bot-spezifische Stimme übergeben
+              const text = speakStichGewonnen(gewinnerSpieler.name);
               setSpeechBubble({ text, playerId: gewinner });
               setTimeout(() => setSpeechBubble(null), 6000);
             }
@@ -385,11 +428,15 @@ export default function GamePage() {
       setErgebnis(e);
     };
 
-    const handleBotAction = (data: { botId: string; action: string; ansage?: string; gesuchteAss?: string }) => {
+    const handleBotAction = (data: { botId: string; botName?: string; action: string; ansage?: string; gesuchteAss?: string }) => {
       if (data.action === 'ansage' && data.ansage) {
-        const text = speakAnsage(data.ansage, data.gesuchteAss);
-        setSpeechBubble({ text, playerId: data.botId });
-        setTimeout(() => setSpeechBubble(null), 6000);
+        // Nur bei echten Ansagen Audio abspielen (nicht bei "weiter"/Passen)
+        if (data.ansage !== 'weiter') {
+          // Bot-Name für Bot-spezifische Stimme übergeben
+          const text = speakAnsage(data.ansage, data.gesuchteAss, data.botName);
+          setSpeechBubble({ text, playerId: data.botId });
+          setTimeout(() => setSpeechBubble(null), 6000);
+        }
       }
 
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
@@ -752,6 +799,27 @@ export default function GamePage() {
     );
   }
 
+  // Spieler nicht in diesem Spiel (z.B. Practice-Raum eines anderen Spielers)
+  if (notInGame) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
+        <div className="text-xl text-amber-400">Kein Zugriff</div>
+        <p className="text-gray-400 text-center">
+          Du bist nicht Teil dieses Spiels.
+          {waitingRoom && waitingRoom.spieler.length >= 4 && (
+            <span className="block mt-1">Der Tisch ist bereits voll.</span>
+          )}
+        </p>
+        <button
+          onClick={() => router.push('/lobby')}
+          className="btn btn-primary"
+        >
+          Zurück zur Lobby
+        </button>
+      </div>
+    );
+  }
+
   // Warte-Lobby anzeigen wenn Spiel noch nicht gestartet
   if (!gameState && waitingRoom) {
     const myPlayer = waitingRoom.spieler.find(s => s.id === playerId);
@@ -952,12 +1020,16 @@ export default function GamePage() {
         {/* Header mit Exit-Button - z-[60] damit über Modalen (z-50) */}
         <div className="flex justify-between items-center px-2 py-1 z-[60] relative">
           <ConnectionIndicator />
-          <button
-            onClick={leaveRoom}
-            className="text-xs px-3 py-2 rounded bg-gray-800/90 text-gray-300 hover:text-white hover:bg-red-800 transition-colors min-w-[44px] min-h-[44px]"
-          >
-            ✕ Verlassen
-          </button>
+          <div className="flex items-center gap-2">
+            <FeedbackButton variant="header" />
+            <button
+              onClick={leaveRoom}
+              className="text-xs px-2 py-2 rounded bg-gray-800/90 text-gray-300 hover:text-white hover:bg-red-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <span className="sm:hidden">✕</span>
+              <span className="hidden sm:inline">✕ Verlassen</span>
+            </button>
+          </div>
         </div>
 
         {/* Spieltisch - füllt verfügbaren Platz, z-[41] damit Karten über Bottom-Sheet-Backdrop (z-40) sichtbar */}
@@ -972,6 +1044,7 @@ export default function GamePage() {
             onCardPlay={handleCardPlay}
             isCollecting={isCollecting}
             speechBubble={speechBubble}
+            hintsEnabled={hintsEnabled}
           />
 
           {/* Austeil-Animation */}
@@ -985,7 +1058,15 @@ export default function GamePage() {
 
         {/* Legen-Dialog - Bottom Sheet */}
         {shouldShowLegen && (
-          <GameLegen onLegen={handleLegen} kartenAnzahl={3} />
+          <GameLegen
+            onLegen={handleLegen}
+            kartenAnzahl={3}
+            karten={mySpieler?.hand.slice(0, 3)}
+            hintsEnabled={hintsEnabled}
+            spieler={gameState.spieler}
+            legenEntscheidungen={gameState.legenEntscheidungen || []}
+            myPlayerId={playerId}
+          />
         )}
 
         {/* Ansage-Dialog - Bottom Sheet */}
@@ -994,6 +1075,14 @@ export default function GamePage() {
             hand={mySpieler.hand}
             onAnsage={handleAnsage}
             bisherigeHoechsteAnsage={gameState.gespielteAnsage}
+            bisherigeAnsagen={
+              // Sammle bisherige Ansagen von allen Spielern die schon angesagt haben
+              gameState.spieler
+                .filter(s => s.hatAngesagt && s.ansage)
+                .map(s => ({ position: s.position, ansage: s.ansage! }))
+            }
+            hintsEnabled={hintsEnabled}
+            spieler={gameState.spieler}
           />
         )}
 
