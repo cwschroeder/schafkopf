@@ -346,12 +346,31 @@ export default function GamePage() {
         .catch(console.error);
     };
 
-    const handleKarteGespielt = (data?: { spielerId?: string; karte?: { farbe: string; wert: string } }) => {
+    const handleKarteGespielt = (data?: {
+      spielerId?: string;
+      karte?: { farbe: string; wert: string };
+      mitspielerReaktion?: { sprecherId: string; sprecherName: string; text: string; speech: string };
+    }) => {
       fetch(apiUrl(`/api/game?roomId=${roomId}&playerId=${playerId}`))
         .then(res => res.json())
         .then(state => {
           debugCheckState(state, 'handleKarteGespielt');
           setGameState(state);
+
+          // Prüfe: Verpasst Stechen Reaktion vom Server?
+          if (data?.mitspielerReaktion) {
+            const { sprecherId, sprecherName, text, speech } = data.mitspielerReaktion;
+            // Reaktion abspielen mit Bot-Stimme
+            speakMitspielerReaktion({
+              situation: 'verpasst-stechen',
+              sprecherId,
+              sprecherName,
+              phrase: { text, speech },
+            });
+            setSpeechBubble({ text, playerId: sprecherId });
+            setTimeout(() => setSpeechBubble(null), 6000);
+            return; // Keine weitere Reaktion in diesem Zug
+          }
 
           // Prüfe: Partner gefunden? (bei Sauspiel, wenn gesuchte Sau gespielt wird)
           if (data?.karte && data?.spielerId && state.gespielteAnsage === 'sauspiel') {

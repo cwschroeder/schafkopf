@@ -17,7 +17,8 @@ import {
 import { kannAusIs } from '@/lib/aus-is';
 import { getPusherServer, EVENTS, roomChannel } from '@/lib/pusher';
 import { botAnsage, botSpielzug } from '@/lib/bot-logic';
-import { Ansage, Farbe, SpielState } from '@/lib/schafkopf/types';
+import { Ansage, Farbe, SpielState, Karte } from '@/lib/schafkopf/types';
+import { checkVerpasstStechen } from '@/lib/mitspieler-reaktionen';
 
 // Helper für optionales Pusher-Triggern
 async function triggerPusher(channel: string, event: string, data: unknown) {
@@ -143,12 +144,33 @@ export async function POST(request: NextRequest) {
       case 'spielzug': {
         const { karteId } = params as { karteId: string };
 
+        // Hand VOR dem Spielzug speichern (für "Verpasst Stechen" Reaktion)
+        const spieler = state.spieler.find(s => s.id === playerId);
+        const alteHand = spieler ? [...spieler.hand] : [];
+        const gespielteKarte = alteHand.find(k => k.id === karteId);
+
         state = verarbeiteSpielzug(state, playerId, karteId);
         await saveGameState(state);
+
+        // Prüfe: Hat der Spieler das Stechen verpasst?
+        let mitspielerReaktion = null;
+        if (gespielteKarte && !spieler?.isBot) {
+          const reaktion = checkVerpasstStechen(state, playerId, gespielteKarte, alteHand);
+          if (reaktion) {
+            mitspielerReaktion = {
+              sprecherId: reaktion.sprecherId,
+              sprecherName: reaktion.sprecherName,
+              text: reaktion.phrase.text,
+              speech: reaktion.phrase.speech,
+            };
+          }
+        }
 
         await triggerPusher(roomChannel(roomId), EVENTS.KARTE_GESPIELT, {
           playerId,
           karteId,
+          karte: gespielteKarte ? { farbe: gespielteKarte.farbe, wert: gespielteKarte.wert } : undefined,
+          mitspielerReaktion, // Optional: Reaktion auf verpasstes Stechen
         });
 
         await broadcastGameState(roomId, state);
