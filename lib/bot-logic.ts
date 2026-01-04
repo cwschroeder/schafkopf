@@ -319,17 +319,48 @@ function bewerteKarte(
         score += 40 + stichAugen;
       }
     } else {
-      // Wir können nicht gewinnen
-      if (istSpielmacher) {
-        // Schmieren: Hohe Augen zum Partner
-        const partnerImStich = (stich.karten || []).some(k => k?.spielerId === state.partner);
-        if (partnerImStich) {
-          score += augen * 2; // Schmieren
+      // Wir können nicht gewinnen - prüfe wer den Stich gewinnt
+      // Finde den aktuellen Gewinner (der hat die höchste Karte bisher gespielt)
+      const gueltigeKarten = stich.karten.filter(k => k && k.karte && k.spielerId);
+
+      if (gueltigeKarten.length > 0) {
+        // Simuliere Stich mit 4 Karten um Gewinner zu ermitteln
+        const simulierterStich: Stich = {
+          ...stich,
+          karten: [...gueltigeKarten],
+          gewinner: null
+        };
+        // Fülle mit Dummy-Karten auf
+        while (simulierterStich.karten.length < 4) {
+          simulierterStich.karten.push({
+            spielerId: 'dummy',
+            karte: { farbe: 'schellen', wert: '9', id: 'dummy' }
+          });
+        }
+
+        const gewinnerIndex = stichGewinner(simulierterStich, spielart as any);
+        const gewinnerKarte = gueltigeKarten[gewinnerIndex]; // Nur echte Karten
+        const gewinnerId = gewinnerKarte?.spielerId;
+
+        // Prüfe ob der Gewinner im eigenen Team ist
+        const spielmacherTeam = [state.spielmacher, state.partner].filter(Boolean);
+        const gegnerTeam = state.spieler
+          .filter(s => !spielmacherTeam.includes(s.id))
+          .map(s => s.id);
+
+        const gewinnerIstMitspieler = istSpielmacher
+          ? spielmacherTeam.includes(gewinnerId!)
+          : gegnerTeam.includes(gewinnerId!);
+
+        if (gewinnerIstMitspieler && gewinnerId) {
+          // Mitspieler gewinnt → SCHMIEREN (hohe Augen geben)
+          score += 20 + augen * 3;
         } else {
-          score += 20 - augen; // Abwerfen
+          // Gegner gewinnt → ABWERFEN (wenig Augen geben)
+          score += 30 - augen;
         }
       } else {
-        // Als Gegner: Wenig Augen abgeben
+        // Fallback: Wenig Augen abgeben
         score += 30 - augen;
       }
     }
