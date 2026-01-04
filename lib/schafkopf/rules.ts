@@ -8,10 +8,11 @@ const OBER_REIHENFOLGE: Farbe[] = ['eichel', 'gras', 'herz', 'schellen'];
 const UNTER_REIHENFOLGE: Farbe[] = ['eichel', 'gras', 'herz', 'schellen'];
 
 // Reihenfolge innerhalb einer Farbe (höchster zuerst, ohne Ober/Unter)
-const FARB_REIHENFOLGE: Wert[] = ['ass', 'koenig', '10', '9'];
+// Bei Schafkopf: Ass > 10 > König > 9 (10 ist höher als König!)
+const FARB_REIHENFOLGE: Wert[] = ['ass', '10', 'koenig', '9'];
 
 // Herz-Trumpf Reihenfolge (ohne Ober/Unter)
-const HERZ_TRUMPF_REIHENFOLGE: Wert[] = ['ass', 'koenig', '10', '9'];
+const HERZ_TRUMPF_REIHENFOLGE: Wert[] = ['ass', '10', 'koenig', '9'];
 
 /**
  * Prüft ob eine Karte Trumpf ist
@@ -90,8 +91,8 @@ export function trumpfStaerke(karte: Karte, spielart: Spielart): number {
     return 100 + (3 - UNTER_REIHENFOLGE.indexOf(karte.farbe));
   }
 
-  // Trumpffarbe (nicht Ober/Unter): 0-5
-  // Ass=5, König=4, 10=3, 9=2, 8=1, 7=0
+  // Trumpffarbe (nicht Ober/Unter): 2-5
+  // Ass=5, 10=4, König=3, 9=2
   const trumpfFarbeIndex = FARB_REIHENFOLGE.indexOf(karte.wert);
   if (trumpfFarbeIndex !== -1) {
     return 5 - trumpfFarbeIndex;
@@ -102,29 +103,29 @@ export function trumpfStaerke(karte: Karte, spielart: Spielart): number {
 
 /**
  * Gibt die Stärke einer Nicht-Trumpf-Karte innerhalb ihrer Farbe zurück
- * Bei Geier: Unter sind Farbkarten (Ass > König > Unter > 10 > 9)
- * Bei Wenz: Ober sind Farbkarten (Ass > König > Ober > 10 > 9)
+ * Bei Geier: Unter sind Farbkarten (Ass > 10 > König > Unter > 9)
+ * Bei Wenz: Ober sind Farbkarten (Ass > 10 > König > Ober > 9)
  */
 export function farbStaerke(karte: Karte, spielart?: Spielart): number {
   const basisSpielart = spielart ? getBaseSolo(spielart) : undefined;
 
-  // Bei Geier: Unter ist eine Farbkarte (zwischen König und 10)
+  // Bei Geier: Unter ist eine Farbkarte (zwischen König und 9)
   if (karte.wert === 'unter') {
     if (basisSpielart === 'geier') {
-      return 3.5; // Zwischen König (4) und 10 (3)
+      return 2.5; // Zwischen König (3) und 9 (2)
     }
     return -1; // Sonst Trumpf
   }
 
-  // Bei Wenz: Ober ist eine Farbkarte (zwischen König und 10)
+  // Bei Wenz: Ober ist eine Farbkarte (zwischen König und 9)
   if (karte.wert === 'ober') {
     if (basisSpielart === 'wenz') {
-      return 3.5; // Zwischen König (4) und 10 (3)
+      return 2.5; // Zwischen König (3) und 9 (2)
     }
     return -1; // Sonst Trumpf
   }
 
-  // Ass=5, König=4, 10=3, 9=2
+  // Ass=5, 10=4, König=3, 9=2
   return 5 - FARB_REIHENFOLGE.indexOf(karte.wert);
 }
 
