@@ -121,14 +121,35 @@ export async function addBotsToRoom(roomId: string): Promise<Raum | null> {
   const room = await getRoom(roomId);
   if (!room) return null;
 
-  const botNames = ['Bot Max', 'Bot Sepp', 'Bot Vroni', 'Bot Hans'];
+  // Männliche und weibliche Bots getrennt für zufällige Auswahl
+  const maleBots = ['Bot Max', 'Bot Sepp', 'Bot Hans'];
+  const femaleBots = ['Bot Vroni', 'Bot Annemarie'];
+
+  // Alle Bots mischen für zufällige Auswahl
+  const allBots = [...maleBots, ...femaleBots];
+  const shuffledBots = allBots.sort(() => Math.random() - 0.5);
+
+  // Namen der bereits im Raum befindlichen Spieler (um Duplikate zu vermeiden)
+  const existingNames = new Set(room.spieler.map(s => s.name));
+
   let botIndex = 0;
+  let shuffleIndex = 0;
 
   while (room.spieler.length < 4) {
+    // Finde einen Bot-Namen der noch nicht verwendet wird
+    let botName = shuffledBots[shuffleIndex % shuffledBots.length];
+    while (existingNames.has(botName)) {
+      shuffleIndex++;
+      botName = shuffledBots[shuffleIndex % shuffledBots.length];
+      // Sicherheit: Verhindere Endlosschleife
+      if (shuffleIndex > shuffledBots.length * 2) break;
+    }
+
     const botId = `bot_${roomId}_${botIndex}`;
-    const botName = botNames[botIndex % botNames.length];
     room.spieler.push({ id: botId, name: botName, isBot: true, ready: true });
+    existingNames.add(botName);
     botIndex++;
+    shuffleIndex++;
   }
 
   room.status = 'voll';

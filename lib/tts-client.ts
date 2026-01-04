@@ -114,10 +114,13 @@ let defaultVoice: VoiceKey = 'm1';
 // Bot-Stimmen-Zuordnung
 // Jeder Bot bekommt eine eigene Stimme
 const BOT_VOICES: Record<string, VoiceKey> = {
-  'Bot Max': 'm1',      // Männlich 1 (echo)
-  'Bot Sepp': 'm2',     // Männlich 2 (onyx)
-  'Bot Vroni': 'f1',    // Weiblich 1 (nova)
-  'Bot Hans': 'm1',     // Männlich 1 (echo)
+  // Männliche Bots
+  'Bot Max': 'm1',        // Männlich 1 (echo)
+  'Bot Sepp': 'm2',       // Männlich 2 (onyx)
+  'Bot Hans': 'm1',       // Männlich 1 (echo)
+  // Weibliche Bots
+  'Bot Vroni': 'f1',      // Weiblich 1 (nova)
+  'Bot Annemarie': 'f2',  // Weiblich 2 (shimmer)
 };
 
 /**
