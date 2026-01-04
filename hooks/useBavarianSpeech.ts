@@ -6,6 +6,7 @@ import {
   initSpeech,
   unlockAudio,
   getAnsageText,
+  getKartenKommentar,
   randomPhrase,
   STICH_GEWONNEN,
   STICH_VERLOREN,
@@ -14,6 +15,9 @@ import {
   SPIEL_VERLOREN,
   DU_GESAGT,
   RE_GESAGT,
+  LEGEN_JA,
+  LEGEN_NEIN,
+  AUS_IS,
   BavarianPhrase,
 } from '@/lib/bavarian-speech';
 import { MitspielerReaktion } from '@/lib/mitspieler-reaktionen';
@@ -94,6 +98,30 @@ export function useBavarianSpeech() {
     return phrase.text;
   }, []);
 
+  // Karten-Kommentar (wenn Bot eine Karte spielt)
+  const speakKartenKommentar = useCallback((farbe: string, wert: string, playerName?: string) => {
+    const phrase = getKartenKommentar(farbe, wert);
+    if (phrase) {
+      speak(phrase.speech, 0.9, playerName);
+      return phrase.text;
+    }
+    return null;
+  }, []);
+
+  // Legen-Spruch (beim Verdoppeln)
+  const speakLegen = useCallback((hatGelegt: boolean, playerName?: string) => {
+    const phrase = randomPhrase(hatGelegt ? LEGEN_JA : LEGEN_NEIN);
+    speak(phrase.speech, 0.9, playerName);
+    return phrase.text;
+  }, []);
+
+  // Spielende-Spruch
+  const speakAusIs = useCallback((playerName?: string) => {
+    const phrase = randomPhrase(AUS_IS);
+    speak(phrase.speech, 1.0, playerName);
+    return phrase.text;
+  }, []);
+
   return {
     speakAnsage,
     speakStichGewonnen,
@@ -105,6 +133,9 @@ export function useBavarianSpeech() {
     speakRe,
     speakMitspielerReaktion,
     speakPhrase,
-    ensureAudioReady, // Für Mobile-Audio-Unlock bei User-Interaktion
+    speakKartenKommentar,  // NEU: Kommentar zu gespielten Karten
+    speakLegen,            // NEU: Beim Legen/Verdoppeln
+    speakAusIs,            // NEU: Spielende
+    ensureAudioReady,      // Für Mobile-Audio-Unlock bei User-Interaktion
   };
 }

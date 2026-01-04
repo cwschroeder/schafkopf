@@ -60,7 +60,15 @@ export default function GamePage() {
   const skipErgebnisReloadRef = useRef(false); // Verhindert Reload nach "Neue Runde" bis neues RUNDE_ENDE
 
   // Bayerische Sprachausgabe
-  const { speakAnsage, speakStichGewonnen, speakMitspielerReaktion, ensureAudioReady } = useBavarianSpeech();
+  const {
+    speakAnsage,
+    speakStichGewonnen,
+    speakMitspielerReaktion,
+    speakKartenKommentar,
+    speakLegen,
+    speakAusIs,
+    ensureAudioReady
+  } = useBavarianSpeech();
 
   // Helper: Trigger Bots wenn ein Bot dran ist (wichtig bei Page Reload)
   const triggerBotsIfNeeded = useCallback(async (state: SpielState) => {
@@ -426,16 +434,47 @@ export default function GamePage() {
       // Skip-Flag zurücksetzen damit dieses neue Ergebnis angezeigt wird
       skipErgebnisReloadRef.current = false;
       setErgebnis(e);
+
+      // "Aus is!" Spruch abspielen (zufällig ein Bot sagt es)
+      if (gameState) {
+        const bots = gameState.spieler.filter(s => s.isBot);
+        if (bots.length > 0) {
+          const randomBot = bots[Math.floor(Math.random() * bots.length)];
+          // Kurze Verzögerung damit es nach dem letzten Stich kommt
+          setTimeout(() => {
+            const text = speakAusIs(randomBot.name);
+            setSpeechBubble({ text, playerId: randomBot.id });
+            setTimeout(() => setSpeechBubble(null), 5000);
+          }, 1000);
+        }
+      }
     };
 
-    const handleBotAction = (data: { botId: string; botName?: string; action: string; ansage?: string; gesuchteAss?: string }) => {
+    const handleBotAction = (data: { botId: string; botName?: string; action: string; ansage?: string; gesuchteAss?: string; karteId?: string; willLegen?: boolean }) => {
+      // Ansage
       if (data.action === 'ansage' && data.ansage) {
         // Nur bei echten Ansagen Audio abspielen (nicht bei "weiter"/Passen)
         if (data.ansage !== 'weiter') {
-          // Bot-Name für Bot-spezifische Stimme übergeben
           const text = speakAnsage(data.ansage, data.gesuchteAss, data.botName);
           setSpeechBubble({ text, playerId: data.botId });
           setTimeout(() => setSpeechBubble(null), 6000);
+        }
+      }
+
+      // Legen (Verdoppeln)
+      if (data.action === 'legen' && data.willLegen !== undefined) {
+        const text = speakLegen(data.willLegen, data.botName);
+        setSpeechBubble({ text, playerId: data.botId });
+        setTimeout(() => setSpeechBubble(null), 4000);
+      }
+
+      // Spielzug (Karte spielen) - manchmal kommentieren
+      if (data.action === 'spielzug' && data.karteId) {
+        const [farbe, wert] = data.karteId.split('-');
+        const text = speakKartenKommentar(farbe, wert, data.botName);
+        if (text) {
+          setSpeechBubble({ text, playerId: data.botId });
+          setTimeout(() => setSpeechBubble(null), 4000);
         }
       }
 
@@ -494,7 +533,7 @@ export default function GamePage() {
       socket.off(EVENTS.VOICE_MESSAGE, handleVoiceMessage);
       unsubscribeFromChannel(socket, channel);
     };
-  }, [playerId, playerName, roomId, setGameState, setWaitingRoom, setCurrentRoom, speakAnsage, speakStichGewonnen, speakMitspielerReaktion]);
+  }, [playerId, playerName, roomId, setGameState, setWaitingRoom, setCurrentRoom, speakAnsage, speakStichGewonnen, speakMitspielerReaktion, speakKartenKommentar, speakLegen, speakAusIs, gameState]);
 
   // Periodischer State-Sync falls keine Push-Events kommen
   useEffect(() => {
