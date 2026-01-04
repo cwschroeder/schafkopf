@@ -521,8 +521,18 @@ export function getKartenKommentar(farbe: string, wert: string): BavarianPhrase 
   const key = getKartenKey(farbe, wert);
   const kommentare = KARTEN_KOMMENTARE[key];
 
+  // Bei Unter-Karten: 50% Chance auf generische UNTER_KOMMENTARE statt kartenspezifische
+  if (wert === 'unter' && Math.random() < 0.5) {
+    return randomPhrase(UNTER_KOMMENTARE);
+  }
+
   if (kommentare && kommentare.length > 0) {
     return randomPhrase(kommentare);
+  }
+
+  // Fallback: Allgemeiner Kommentar (20% Chance wenn kein spezifischer passt)
+  if (Math.random() < 0.2) {
+    return randomPhrase(ALLGEMEINE_KOMMENTARE);
   }
 
   return null;
