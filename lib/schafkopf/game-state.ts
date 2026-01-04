@@ -75,7 +75,8 @@ export async function deleteGameState(roomId: string): Promise<void> {
 export function erstelleSpiel(
   raumId: string,
   spielerDaten: { id: string; name: string; isBot: boolean }[],
-  vorherigerGeber?: number
+  vorherigerGeber?: number,
+  options?: { skipLegen?: boolean }
 ): SpielState {
   const haende = austeilen();
 
@@ -106,7 +107,7 @@ export function erstelleSpiel(
   const state: SpielState = {
     id: raumId,
     spieler,
-    phase: 'legen', // Startet mit Legen-Phase
+    phase: options?.skipLegen ? 'ansagen' : 'legen', // Übungsspiele überspringen Legen
     geber,
     legenEntscheidungen: [],
     aktuellerAnsager: ersterSpieler, // Rechts vom Geber beginnt
@@ -314,6 +315,9 @@ export function verarbeiteSpielzug(
     state.aktuellerStich.gewinner = gewinner.id;
     console.log(`[Stich] Gewinner: ${gewinner.name} (Position ${gewinnerPosition})`);
 
+    // Letzten Stich speichern BEVOR er dem Gewinner gegeben wird
+    state.letzterStich = { ...state.aktuellerStich };
+
     // Stich dem Gewinner geben
     gewinner.stiche.push(state.aktuellerStich.karten.map(k => k.karte));
 
@@ -358,8 +362,7 @@ export function naechsterStich(state: SpielState): SpielState {
     throw new Error('Nicht im Stich-Ende');
   }
 
-  // Letzten Stich speichern bevor er geleert wird
-  state.letzterStich = { ...state.aktuellerStich };
+  // Stich leeren für nächsten Stich (letzterStich wurde schon in verarbeiteSpielzug gespeichert)
   state.aktuellerStich = { karten: [], gewinner: null };
   state.phase = 'spielen';
 
@@ -523,6 +526,9 @@ export async function getSpielStateAsync(raumId: string): Promise<SpielState | u
 export function getSpielerSicht(state: SpielState, spielerId: string): SpielState {
   const sicht = JSON.parse(JSON.stringify(state)) as SpielState;
 
+  // Debug: Prüfe ob der Spieler gefunden wird
+  const meineKartenVorher = sicht.spieler.find(s => s.id === spielerId)?.hand.map(k => k.id);
+
   for (const spieler of sicht.spieler) {
     if (spieler.id !== spielerId) {
       // Anzahl der Karten beibehalten, aber Werte verstecken
@@ -532,6 +538,20 @@ export function getSpielerSicht(state: SpielState, spielerId: string): SpielStat
         id: 'hidden',
       }));
     }
+  }
+
+  // Debug: Prüfe ob eigene Karten betroffen wurden
+  const meineKartenNachher = sicht.spieler.find(s => s.id === spielerId)?.hand.map(k => k.id);
+  const hatVersteckteNachher = meineKartenNachher?.some(id => id === 'hidden');
+
+  if (hatVersteckteNachher) {
+    console.error('[getSpielerSicht] BUG: Eigene Karten wurden versteckt!', {
+      spielerId,
+      allSpielerIds: state.spieler.map(s => s.id),
+      spielerGefunden: state.spieler.some(s => s.id === spielerId),
+      vorher: meineKartenVorher,
+      nachher: meineKartenNachher,
+    });
   }
 
   return sicht;
