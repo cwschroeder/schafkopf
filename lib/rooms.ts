@@ -121,35 +121,56 @@ export async function addBotsToRoom(roomId: string): Promise<Raum | null> {
   const room = await getRoom(roomId);
   if (!room) return null;
 
-  // Männliche und weibliche Bots getrennt für zufällige Auswahl
+  // Männliche und weibliche Bots
   const maleBots = ['Bot Max', 'Bot Sepp', 'Bot Hans'];
   const femaleBots = ['Bot Vroni', 'Bot Annemarie'];
 
-  // Alle Bots mischen für zufällige Auswahl
-  const allBots = [...maleBots, ...femaleBots];
-  const shuffledBots = allBots.sort(() => Math.random() - 0.5);
+  // Anzahl benötigter Bots
+  const botsNeeded = 4 - room.spieler.length;
 
   // Namen der bereits im Raum befindlichen Spieler (um Duplikate zu vermeiden)
   const existingNames = new Set(room.spieler.map(s => s.name));
 
+  // Verfügbare Bots filtern
+  const availableMale = maleBots.filter(b => !existingNames.has(b));
+  const availableFemale = femaleBots.filter(b => !existingNames.has(b));
+
+  // Mischen
+  const shuffledMale = availableMale.sort(() => Math.random() - 0.5);
+  const shuffledFemale = availableFemale.sort(() => Math.random() - 0.5);
+
+  // Bot-Auswahl: Bei 3 Bots -> 2 Frauen, 1 Mann
+  // Bei 2 Bots -> 1 Frau, 1 Mann
+  // Bei 1 Bot -> zufällig
+  let selectedBots: string[] = [];
+
+  if (botsNeeded === 3) {
+    // 2 Frauen + 1 Mann
+    selectedBots = [
+      ...shuffledFemale.slice(0, 2),
+      ...shuffledMale.slice(0, 1)
+    ];
+  } else if (botsNeeded === 2) {
+    // 1 Frau + 1 Mann
+    selectedBots = [
+      ...shuffledFemale.slice(0, 1),
+      ...shuffledMale.slice(0, 1)
+    ];
+  } else if (botsNeeded === 1) {
+    // Zufällig
+    const allAvailable = [...shuffledMale, ...shuffledFemale];
+    selectedBots = allAvailable.slice(0, 1);
+  }
+
+  // Shuffle selected bots for random seating order
+  selectedBots = selectedBots.sort(() => Math.random() - 0.5);
+
+  // Bots zum Raum hinzufügen
   let botIndex = 0;
-  let shuffleIndex = 0;
-
-  while (room.spieler.length < 4) {
-    // Finde einen Bot-Namen der noch nicht verwendet wird
-    let botName = shuffledBots[shuffleIndex % shuffledBots.length];
-    while (existingNames.has(botName)) {
-      shuffleIndex++;
-      botName = shuffledBots[shuffleIndex % shuffledBots.length];
-      // Sicherheit: Verhindere Endlosschleife
-      if (shuffleIndex > shuffledBots.length * 2) break;
-    }
-
+  for (const botName of selectedBots) {
     const botId = `bot_${roomId}_${botIndex}`;
     room.spieler.push({ id: botId, name: botName, isBot: true, ready: true });
-    existingNames.add(botName);
     botIndex++;
-    shuffleIndex++;
   }
 
   room.status = 'voll';
