@@ -22,10 +22,9 @@ Ein Multiplayer-Kartenspiel für das bayerische Kartenspiel Schafkopf mit Echtze
 | Framework | Next.js 14 (App Router) |
 | Real-time | Socket.IO (selbst gehostet) |
 | Datenbank | PostgreSQL (Drizzle ORM) |
-| Cache | Redis |
 | State | Zustand |
 | Styling | Tailwind CSS |
-| Auth | NextAuth.js (Google, GitHub) |
+| Auth | NextAuth.js (Google, GitHub, JWT Sessions) |
 | TTS | OpenAI Whisper |
 
 ## Installation
@@ -34,7 +33,6 @@ Ein Multiplayer-Kartenspiel für das bayerische Kartenspiel Schafkopf mit Echtze
 
 - Node.js 18+
 - PostgreSQL 15+
-- Redis 7+
 
 ### Setup
 
@@ -105,7 +103,7 @@ schafkopf/
 │   ├── bot-logic.ts          # KI-Gegner
 │   ├── pusher.ts             # Socket.IO Client/Server
 │   ├── store.ts              # Zustand Store
-│   └── rooms.ts              # Raum-Verwaltung (Redis)
+│   └── rooms.ts              # Raum-Verwaltung (PostgreSQL)
 │
 ├── public/                   # Statische Assets
 │   ├── cards/                # Kartenbilder
@@ -122,7 +120,7 @@ schafkopf/
 ### Datenfluss
 
 ```
-Player Action → API Route → Redis State Update
+Player Action → API Route → PostgreSQL State Update
                     ↓
             Socket.IO Trigger (HTTP POST)
                     ↓
@@ -143,8 +141,8 @@ warten → austeilen → legen → ansagen → spielen ↔ stich-ende → runde-
 
 | Daten | Speicher | Grund |
 |-------|----------|-------|
-| Sessions, Rooms, Games | Redis | Flüchtig, schneller Zugriff |
-| Users, Stats, History | PostgreSQL | Persistent, ACID |
+| Sessions | JWT Tokens | Stateless, kein DB-Zugriff nötig |
+| Rooms, Games, Users, Stats, History | PostgreSQL | Persistent, ACID, JSONB für flexible Strukturen |
 
 ## Schafkopf-Regeln (Kurzfassung)
 
@@ -203,6 +201,10 @@ users (id, email, name, image, settings, created_at, last_login_at)
 oauth_accounts (user_id, provider, provider_account_id)
 legacy_player_links (legacy_player_id, user_id)
 
+-- Räume & Spiele
+rooms (id, name, ersteller_id, spieler, status, erstellt_am)  -- JSONB für Spieler
+active_games (room_id, state, updated_at)                      -- JSONB für SpielState
+
 -- Statistiken
 user_stats (user_id, guthaben, spiele_gesamt, siege, niederlagen,
             ansagen_count, weekly_guthaben, monthly_guthaben)
@@ -222,7 +224,6 @@ feedback_screenshots (report_id, filename, annotations)
 ```bash
 # Datenbank
 DATABASE_URL=postgresql://user:pass@host:5432/schafkopf
-REDIS_URL=redis://127.0.0.1:6379
 
 # Real-time
 SOCKET_TRIGGER_URL=http://127.0.0.1:3002/trigger
@@ -238,12 +239,6 @@ AUTH_GITHUB_SECRET=xxx
 
 # OpenAI (für TTS)
 OPENAI_API_KEY=sk-xxx
-
-# Feature Flags
-USE_POSTGRES_USERS=true
-USE_POSTGRES_STATS=true
-USE_POSTGRES_HISTORY=true
-USE_POSTGRES_FEEDBACK=true
 ```
 
 ## Deployment
@@ -255,7 +250,6 @@ USE_POSTGRES_FEEDBACK=true
 | Next.js App | 3001 | `schafkopf` |
 | Socket.IO | 3002 | `schafkopf-socket` |
 | PostgreSQL | 5432 | `postgresql` |
-| Redis | 6379 | `redis-server` |
 
 ### Build & Deploy
 
@@ -276,7 +270,7 @@ node server.js
 ```ini
 [Unit]
 Description=Schafkopf Online
-After=network.target redis-server.service
+After=network.target postgresql.service
 
 [Service]
 Type=simple

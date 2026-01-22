@@ -222,8 +222,52 @@ export const feedbackScreenshots = pgTable('feedback_screenshots', {
 ]);
 
 // =============================================================================
+// ROOMS & ACTIVE GAMES
+// =============================================================================
+
+/**
+ * Rooms (Lobby)
+ * Spielräume mit Spielern, die auf den Spielstart warten
+ */
+export const rooms = pgTable('rooms', {
+  id: varchar('id', { length: 8 }).primaryKey(), // z.B. "A1B2C3"
+  name: varchar('name', { length: 100 }).notNull(),
+  erstellerId: varchar('ersteller_id', { length: 32 }).notNull(),
+  spieler: jsonb('spieler').$type<{
+    id: string;
+    name: string;
+    isBot: boolean;
+    ready: boolean;
+  }[]>().notNull(),
+  status: varchar('status', { length: 10 }).notNull(), // 'offen' | 'voll' | 'laeuft'
+  erstelltAm: timestamp('erstellt_am', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_rooms_status').on(table.status),
+  index('idx_rooms_erstellt').on(table.erstelltAm),
+]);
+
+/**
+ * Active Games (Spielzustände)
+ * Laufende Spiele mit vollständigem State
+ */
+export const activeGames = pgTable('active_games', {
+  roomId: varchar('room_id', { length: 8 }).primaryKey(),
+  state: jsonb('state').$type<Record<string, unknown>>().notNull(), // SpielState (circular import vermeiden)
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_active_games_updated').on(table.updatedAt),
+]);
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
+
+// Room types
+export type Room = InferSelectModel<typeof rooms>;
+export type NewRoom = InferInsertModel<typeof rooms>;
+
+export type ActiveGame = InferSelectModel<typeof activeGames>;
+export type NewActiveGame = InferInsertModel<typeof activeGames>;
 
 // User types
 export type User = InferSelectModel<typeof users>;

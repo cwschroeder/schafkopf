@@ -9,10 +9,8 @@ import {
   linkLegacyPlayerId as linkLegacy,
   getUserIdFromLegacyId,
 } from './hybrid-adapter';
-import { getRedis } from './redis-adapter';
-import { FEATURE_FLAGS } from '../config/feature-flags';
 import { eq } from 'drizzle-orm';
-import { getDb, userStats as userStatsTable } from '../db';
+import { getDb, userStats as userStatsTable, users } from '../db';
 import {
   UserAccount,
   UserSettings,
@@ -20,9 +18,6 @@ import {
   PublicProfile,
   DEFAULT_USER_STATS,
 } from './types';
-
-const USER_PREFIX = 'user:';
-const STATS_PREFIX = 'stats:user:';
 
 /**
  * User anhand ID laden
@@ -44,7 +39,7 @@ export async function getUserByLegacyId(legacyPlayerId: string): Promise<UserAcc
  * User Settings aktualisieren
  */
 export async function updateUserSettings(
-  userId: string, 
+  userId: string,
   settings: Partial<UserSettings>
 ): Promise<UserAccount | null> {
   return updateSettings(userId, settings);
@@ -54,136 +49,92 @@ export async function updateUserSettings(
  * Legacy Player ID mit Account verknüpfen
  */
 export async function linkLegacyPlayerId(
-  userId: string, 
+  userId: string,
   legacyPlayerId: string
 ): Promise<boolean> {
   return linkLegacy(userId, legacyPlayerId);
 }
 
 /**
- * User Stats laden
+ * User Stats laden (PostgreSQL)
  */
 export async function getUserStats(userId: string): Promise<UserStats | null> {
-  if (FEATURE_FLAGS.USE_POSTGRES_STATS) {
-    const db = getDb();
-    const [row] = await db
-      .select()
-      .from(userStatsTable)
-      .where(eq(userStatsTable.userId, userId));
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(userStatsTable)
+    .where(eq(userStatsTable.userId, userId));
 
-    if (!row) {
-      // Neue Stats erstellen
-      const stats: UserStats = {
-        ...DEFAULT_USER_STATS,
-        userId,
-        lastUpdated: new Date(),
-      };
-
-      await db.insert(userStatsTable).values({
-        userId,
-        guthaben: 0,
-        spieleGesamt: 0,
-        siege: 0,
-        niederlagen: 0,
-        ansagenCount: {},
-        ansagenWins: {},
-        weeklyGuthaben: 0,
-        monthlyGuthaben: 0,
-        lastUpdated: new Date(),
-      });
-
-      return stats;
-    }
-
-    return {
-      userId: row.userId,
-      guthaben: row.guthaben,
-      spieleGesamt: row.spieleGesamt,
-      siege: row.siege,
-      niederlagen: row.niederlagen,
-      ansagenCount: row.ansagenCount as Record<string, number>,
-      ansagenWins: row.ansagenWins as Record<string, number>,
-      weeklyGuthaben: row.weeklyGuthaben,
-      monthlyGuthaben: row.monthlyGuthaben,
-      lastUpdated: row.lastUpdated,
-    };
-  }
-
-  // Redis fallback
-  const r = await getRedis();
-  const data = await r.get(`${STATS_PREFIX}${userId}`);
-  if (!data) {
+  if (!row) {
     // Neue Stats erstellen
     const stats: UserStats = {
       ...DEFAULT_USER_STATS,
       userId,
       lastUpdated: new Date(),
     };
-    await r.set(`${STATS_PREFIX}${userId}`, JSON.stringify(stats));
+
+    await db.insert(userStatsTable).values({
+      userId,
+      guthaben: 0,
+      spieleGesamt: 0,
+      siege: 0,
+      niederlagen: 0,
+      ansagenCount: {},
+      ansagenWins: {},
+      weeklyGuthaben: 0,
+      monthlyGuthaben: 0,
+      lastUpdated: new Date(),
+    });
+
     return stats;
   }
-  return JSON.parse(data);
+
+  return {
+    userId: row.userId,
+    guthaben: row.guthaben,
+    spieleGesamt: row.spieleGesamt,
+    siege: row.siege,
+    niederlagen: row.niederlagen,
+    ansagenCount: row.ansagenCount as Record<string, number>,
+    ansagenWins: row.ansagenWins as Record<string, number>,
+    weeklyGuthaben: row.weeklyGuthaben,
+    monthlyGuthaben: row.monthlyGuthaben,
+    lastUpdated: row.lastUpdated,
+  };
 }
 
 /**
- * User Stats aktualisieren
+ * User Stats aktualisieren (PostgreSQL)
  */
 export async function updateUserStats(
   userId: string,
   updates: Partial<Omit<UserStats, 'userId'>>
 ): Promise<UserStats | null> {
-  if (FEATURE_FLAGS.USE_POSTGRES_STATS) {
-    const db = getDb();
+  const db = getDb();
 
-    // Sicherstellen dass Stats existieren
-    const existing = await getUserStats(userId);
-    if (!existing) return null;
+  // Sicherstellen dass Stats existieren
+  const existing = await getUserStats(userId);
+  if (!existing) return null;
 
-    const dbUpdates: Record<string, unknown> = {
-      lastUpdated: new Date(),
-    };
-
-    if (updates.guthaben !== undefined) dbUpdates.guthaben = updates.guthaben;
-    if (updates.spieleGesamt !== undefined) dbUpdates.spieleGesamt = updates.spieleGesamt;
-    if (updates.siege !== undefined) dbUpdates.siege = updates.siege;
-    if (updates.niederlagen !== undefined) dbUpdates.niederlagen = updates.niederlagen;
-    if (updates.ansagenCount !== undefined) dbUpdates.ansagenCount = updates.ansagenCount;
-    if (updates.ansagenWins !== undefined) dbUpdates.ansagenWins = updates.ansagenWins;
-    if (updates.weeklyGuthaben !== undefined) dbUpdates.weeklyGuthaben = updates.weeklyGuthaben;
-    if (updates.monthlyGuthaben !== undefined) dbUpdates.monthlyGuthaben = updates.monthlyGuthaben;
-
-    await db
-      .update(userStatsTable)
-      .set(dbUpdates)
-      .where(eq(userStatsTable.userId, userId));
-
-    return getUserStats(userId);
-  }
-
-  // Redis fallback
-  const r = await getRedis();
-  const data = await r.get(`${STATS_PREFIX}${userId}`);
-
-  let stats: UserStats;
-  if (!data) {
-    stats = {
-      ...DEFAULT_USER_STATS,
-      userId,
-      lastUpdated: new Date(),
-    };
-  } else {
-    stats = JSON.parse(data);
-  }
-
-  // Updates anwenden
-  const updated: UserStats = {
-    ...stats,
-    ...updates,
+  const dbUpdates: Record<string, unknown> = {
     lastUpdated: new Date(),
   };
 
-  await r.set(`${STATS_PREFIX}${userId}`, JSON.stringify(updated));
-  return updated;
+  if (updates.guthaben !== undefined) dbUpdates.guthaben = updates.guthaben;
+  if (updates.spieleGesamt !== undefined) dbUpdates.spieleGesamt = updates.spieleGesamt;
+  if (updates.siege !== undefined) dbUpdates.siege = updates.siege;
+  if (updates.niederlagen !== undefined) dbUpdates.niederlagen = updates.niederlagen;
+  if (updates.ansagenCount !== undefined) dbUpdates.ansagenCount = updates.ansagenCount;
+  if (updates.ansagenWins !== undefined) dbUpdates.ansagenWins = updates.ansagenWins;
+  if (updates.weeklyGuthaben !== undefined) dbUpdates.weeklyGuthaben = updates.weeklyGuthaben;
+  if (updates.monthlyGuthaben !== undefined) dbUpdates.monthlyGuthaben = updates.monthlyGuthaben;
+
+  await db
+    .update(userStatsTable)
+    .set(dbUpdates)
+    .where(eq(userStatsTable.userId, userId));
+
+  return getUserStats(userId);
 }
 
 /**
@@ -246,19 +197,19 @@ export async function resolveUserId(playerId: string): Promise<string | null> {
 }
 
 /**
- * Prüfen ob User existiert
+ * Prüfen ob User existiert (PostgreSQL)
  */
 export async function userExists(userId: string): Promise<boolean> {
-  const r = await getRedis();
-  const exists = await r.exists(`${USER_PREFIX}${userId}`);
-  return exists === 1;
+  const db = getDb();
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId));
+  return !!user;
 }
 
 /**
  * Guthaben eines Users ändern
  */
 export async function adjustUserGuthaben(
-  userId: string, 
+  userId: string,
   amount: number,
   includeWeekly: boolean = true,
   includeMonthly: boolean = true

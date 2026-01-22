@@ -1,46 +1,12 @@
 /**
  * Stats & Leaderboard Functions
- * Statistiken und Ranglisten für Schafkopf
- *
- * Unterstützt PostgreSQL und Redis via Feature Flags
+ * Statistiken und Ranglisten für Schafkopf (PostgreSQL)
  */
 
-import { getRedis } from './auth/redis-adapter';
 import { UserStats, GameResult, LeaderboardEntry, DEFAULT_USER_STATS } from './auth/types';
 import { resolveUserId, getUserById, recordGameResult } from './auth/users';
-import { FEATURE_FLAGS } from './config/feature-flags';
 import { eq, desc, sql } from 'drizzle-orm';
 import { getDb, userStats as userStatsTable, gameResults as gameResultsTable, users } from './db';
-
-// Redis Keys
-const STATS_PREFIX = 'stats:user:';
-const LEADERBOARD_PREFIX = 'leaderboard:';
-const GAME_HISTORY_PREFIX = 'history:game:';
-
-// TTL Werte
-const WEEKLY_TTL = 30 * 24 * 60 * 60; // 30 Tage
-const MONTHLY_TTL = 90 * 24 * 60 * 60; // 90 Tage
-const GAME_HISTORY_TTL = 90 * 24 * 60 * 60; // 90 Tage
-
-/**
- * Aktuelles Jahr-Woche Format (z.B. "2024-W52")
- */
-function getCurrentYearWeek(): string {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const diff = now.getTime() - start.getTime();
-  const oneWeek = 604800000;
-  const week = Math.ceil(diff / oneWeek);
-  return `${now.getFullYear()}-W${week.toString().padStart(2, '0')}`;
-}
-
-/**
- * Aktuelles Jahr-Monat Format (z.B. "2024-12")
- */
-function getCurrentYearMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-}
 
 // ============================================
 // PostgreSQL Stats Functions
@@ -90,33 +56,6 @@ async function getUserStatsPg(userId: string): Promise<UserStats | null> {
     monthlyGuthaben: row.monthlyGuthaben,
     lastUpdated: row.lastUpdated,
   };
-}
-
-async function updateUserStatsPg(
-  userId: string,
-  updates: Partial<Omit<UserStats, 'userId'>>
-): Promise<UserStats | null> {
-  const db = getDb();
-
-  const dbUpdates: Record<string, unknown> = {
-    lastUpdated: new Date(),
-  };
-
-  if (updates.guthaben !== undefined) dbUpdates.guthaben = updates.guthaben;
-  if (updates.spieleGesamt !== undefined) dbUpdates.spieleGesamt = updates.spieleGesamt;
-  if (updates.siege !== undefined) dbUpdates.siege = updates.siege;
-  if (updates.niederlagen !== undefined) dbUpdates.niederlagen = updates.niederlagen;
-  if (updates.ansagenCount !== undefined) dbUpdates.ansagenCount = updates.ansagenCount;
-  if (updates.ansagenWins !== undefined) dbUpdates.ansagenWins = updates.ansagenWins;
-  if (updates.weeklyGuthaben !== undefined) dbUpdates.weeklyGuthaben = updates.weeklyGuthaben;
-  if (updates.monthlyGuthaben !== undefined) dbUpdates.monthlyGuthaben = updates.monthlyGuthaben;
-
-  await db
-    .update(userStatsTable)
-    .set(dbUpdates)
-    .where(eq(userStatsTable.userId, userId));
-
-  return getUserStatsPg(userId);
 }
 
 async function getLeaderboardPg(
@@ -247,157 +186,14 @@ async function getUserGameHistoryPg(
 }
 
 // ============================================
-// Redis Stats Functions (Legacy)
-// ============================================
-
-async function getUserStatsRedis(userId: string): Promise<UserStats | null> {
-  const r = await getRedis();
-  const data = await r.get(`${STATS_PREFIX}${userId}`);
-
-  if (!data) {
-    // Neue Stats erstellen
-    const stats: UserStats = {
-      ...DEFAULT_USER_STATS,
-      userId,
-      lastUpdated: new Date(),
-    };
-    await r.set(`${STATS_PREFIX}${userId}`, JSON.stringify(stats));
-    return stats;
-  }
-
-  const stats = JSON.parse(data);
-  stats.lastUpdated = new Date(stats.lastUpdated);
-  return stats;
-}
-
-async function updateLeaderboardsRedis(userId: string): Promise<void> {
-  const r = await getRedis();
-  const stats = await getUserStats(userId);
-
-  if (!stats) return;
-
-  const yearWeek = getCurrentYearWeek();
-  const yearMonth = getCurrentYearMonth();
-
-  // All-Time Leaderboard (nach Guthaben)
-  await r.zAdd(`${LEADERBOARD_PREFIX}alltime`, {
-    score: stats.guthaben,
-    value: userId,
-  });
-
-  // Weekly Leaderboard
-  const weeklyKey = `${LEADERBOARD_PREFIX}weekly:${yearWeek}`;
-  await r.zAdd(weeklyKey, {
-    score: stats.weeklyGuthaben,
-    value: userId,
-  });
-  await r.expire(weeklyKey, WEEKLY_TTL);
-
-  // Monthly Leaderboard
-  const monthlyKey = `${LEADERBOARD_PREFIX}monthly:${yearMonth}`;
-  await r.zAdd(monthlyKey, {
-    score: stats.monthlyGuthaben,
-    value: userId,
-  });
-  await r.expire(monthlyKey, MONTHLY_TTL);
-}
-
-async function getLeaderboardRedis(
-  period: 'alltime' | 'weekly' | 'monthly',
-  limit: number = 50,
-  offset: number = 0
-): Promise<LeaderboardEntry[]> {
-  const r = await getRedis();
-
-  let key: string;
-  switch (period) {
-    case 'weekly':
-      key = `${LEADERBOARD_PREFIX}weekly:${getCurrentYearWeek()}`;
-      break;
-    case 'monthly':
-      key = `${LEADERBOARD_PREFIX}monthly:${getCurrentYearMonth()}`;
-      break;
-    default:
-      key = `${LEADERBOARD_PREFIX}alltime`;
-  }
-
-  // Top Scores laden (absteigend sortiert)
-  const results = await r.zRangeWithScores(key, offset, offset + limit - 1, {
-    REV: true,
-  });
-
-  // User-Daten enrichen
-  const entries: LeaderboardEntry[] = [];
-
-  for (let i = 0; i < results.length; i++) {
-    const { value: userId, score: guthaben } = results[i];
-
-    const [user, stats] = await Promise.all([
-      getUserById(userId),
-      getUserStats(userId),
-    ]);
-
-    if (user && stats) {
-      entries.push({
-        rank: offset + i + 1,
-        userId,
-        name: user.name,
-        image: user.image,
-        guthaben,
-        siege: stats.siege,
-        spieleGesamt: stats.spieleGesamt,
-        winRate: stats.spieleGesamt > 0
-          ? Math.round((stats.siege / stats.spieleGesamt) * 100)
-          : 0,
-      });
-    }
-  }
-
-  return entries;
-}
-
-async function getUserRankRedis(
-  userId: string,
-  period: 'alltime' | 'weekly' | 'monthly' = 'alltime'
-): Promise<number | null> {
-  const r = await getRedis();
-
-  let key: string;
-  switch (period) {
-    case 'weekly':
-      key = `${LEADERBOARD_PREFIX}weekly:${getCurrentYearWeek()}`;
-      break;
-    case 'monthly':
-      key = `${LEADERBOARD_PREFIX}monthly:${getCurrentYearMonth()}`;
-      break;
-    default:
-      key = `${LEADERBOARD_PREFIX}alltime`;
-  }
-
-  const rank = await r.zRevRank(key, userId);
-  return rank !== null ? rank + 1 : null;
-}
-
-async function saveGameToHistoryRedis(result: GameResult): Promise<void> {
-  const r = await getRedis();
-  const key = `${GAME_HISTORY_PREFIX}${result.gameId}`;
-
-  await r.set(key, JSON.stringify(result));
-  await r.expire(key, GAME_HISTORY_TTL);
-}
-
-// ============================================
-// Public API (mit Feature Flag Switching)
+// Public API
 // ============================================
 
 /**
  * User Stats laden
  */
 export async function getUserStats(userId: string): Promise<UserStats | null> {
-  if (FEATURE_FLAGS.USE_POSTGRES_STATS) {
-    return getUserStatsPg(userId);
-  }
-  return getUserStatsRedis(userId);
+  return getUserStatsPg(userId);
 }
 
 /**
@@ -421,20 +217,17 @@ export async function recordPlayerGameResult(
   // Stats aktualisieren
   await recordGameResult(userId, spielart, gewonnen, guthabenAenderung);
 
-  // Leaderboards aktualisieren
-  await updateLeaderboards(userId);
+  // PostgreSQL: Stats sind bereits in der DB, kein separates Leaderboard-Update nötig
+  // Die Leaderboard-Queries lesen direkt aus user_stats
 }
 
 /**
  * Leaderboards mit aktuellen User-Stats aktualisieren
+ * (Bei PostgreSQL nicht nötig - Leaderboard liest direkt aus user_stats)
  */
 export async function updateLeaderboards(userId: string): Promise<void> {
-  if (FEATURE_FLAGS.USE_POSTGRES_LEADERBOARD) {
-    // PostgreSQL: Stats sind bereits in der DB, kein separates Update nötig
-    // Die Leaderboard-Queries lesen direkt aus user_stats
-    return;
-  }
-  return updateLeaderboardsRedis(userId);
+  // PostgreSQL: Stats sind bereits in der DB, kein separates Update nötig
+  // Die Leaderboard-Queries lesen direkt aus user_stats
 }
 
 /**
@@ -445,10 +238,7 @@ export async function getLeaderboard(
   limit: number = 50,
   offset: number = 0
 ): Promise<LeaderboardEntry[]> {
-  if (FEATURE_FLAGS.USE_POSTGRES_LEADERBOARD) {
-    return getLeaderboardPg(period, limit, offset);
-  }
-  return getLeaderboardRedis(period, limit, offset);
+  return getLeaderboardPg(period, limit, offset);
 }
 
 /**
@@ -458,30 +248,14 @@ export async function getUserRank(
   userId: string,
   period: 'alltime' | 'weekly' | 'monthly' = 'alltime'
 ): Promise<number | null> {
-  if (FEATURE_FLAGS.USE_POSTGRES_LEADERBOARD) {
-    return getUserRankPg(userId, period);
-  }
-  return getUserRankRedis(userId, period);
+  return getUserRankPg(userId, period);
 }
 
 /**
  * Spiel-Ergebnis in History speichern
  */
 export async function saveGameToHistory(result: GameResult): Promise<void> {
-  if (FEATURE_FLAGS.USE_POSTGRES_HISTORY) {
-    return saveGameToHistoryPg(result);
-  }
-
-  // Dual-Write: Immer auch zu PostgreSQL schreiben
-  if (FEATURE_FLAGS.DUAL_WRITE_ENABLED) {
-    try {
-      await saveGameToHistoryPg(result);
-    } catch (err) {
-      console.warn('[Stats] Dual-write to PostgreSQL failed:', err);
-    }
-  }
-
-  return saveGameToHistoryRedis(result);
+  return saveGameToHistoryPg(result);
 }
 
 /**
@@ -491,38 +265,28 @@ export async function getUserGameHistory(
   userId: string,
   limit: number = 10
 ): Promise<GameResult[]> {
-  if (FEATURE_FLAGS.USE_POSTGRES_HISTORY) {
-    return getUserGameHistoryPg(userId, limit);
-  }
-  // Redis version not implemented (needs index)
-  return [];
+  return getUserGameHistoryPg(userId, limit);
 }
 
 /**
  * Weekly/Monthly Stats zurücksetzen (für Cron-Job)
  */
 export async function resetPeriodicStats(period: 'weekly' | 'monthly'): Promise<void> {
-  if (FEATURE_FLAGS.USE_POSTGRES_STATS) {
-    const db = getDb();
+  const db = getDb();
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
-    if (period === 'weekly') {
-      await db.update(userStatsTable).set({
-        weeklyGuthaben: 0,
-        weeklyResetAt: today,
-      });
-    } else {
-      await db.update(userStatsTable).set({
-        monthlyGuthaben: 0,
-        monthlyResetAt: today,
-      });
-    }
-
-    console.log(`[Stats] Reset ${period} stats in PostgreSQL`);
-    return;
+  if (period === 'weekly') {
+    await db.update(userStatsTable).set({
+      weeklyGuthaben: 0,
+      weeklyResetAt: today,
+    });
+  } else {
+    await db.update(userStatsTable).set({
+      monthlyGuthaben: 0,
+      monthlyResetAt: today,
+    });
   }
 
-  // Redis version not implemented
-  console.log(`[Stats] Reset ${period} stats - not yet implemented for Redis`);
+  console.log(`[Stats] Reset ${period} stats in PostgreSQL`);
 }

@@ -1,40 +1,21 @@
-// Spielzustand-Management
+// Spielzustand-Management mit PostgreSQL
 
 import { SpielState, Spieler, Spielart, Ansage, Karte, Stich, Farbe, SpielErgebnis, istTout } from './types';
 import { austeilen, zaehleAugen } from './cards';
 import { istTrumpf, stichGewinner, spielbareKarten, sortiereHand } from './rules';
 import { berechneErgebnis } from './scoring';
-import { createClient, RedisClientType } from 'redis';
+import { getDb, activeGames } from '../db';
+import { eq } from 'drizzle-orm';
 import { recordPlayerGameResult, saveGameToHistory } from '../stats';
 import { GameResult } from '../auth/types';
 
-const GAME_PREFIX = 'game:';
-const isLocal = !process.env.REDIS_URL;
-
-// Redis-Client (Lazy Init)
-let redis: RedisClientType | null = null;
-let redisConnecting: Promise<RedisClientType> | null = null;
-
-async function getRedis(): Promise<RedisClientType> {
-  if (redis?.isOpen) return redis;
-
-  if (redisConnecting) return redisConnecting;
-
-  redisConnecting = (async () => {
-    redis = createClient({ url: process.env.REDIS_URL });
-    redis.on('error', (err) => console.error('Redis Error:', err));
-    await redis.connect();
-    return redis;
-  })();
-
-  return redisConnecting;
-}
+const isLocal = !process.env.DATABASE_URL;
 
 // Lokaler Fallback für Entwicklung
 const localGames = new Map<string, SpielState>();
 
 // Wrapper für KV/lokalen Speicher
-export const activeGames = {
+export const activeGamesMap = {
   get: (key: string): SpielState | undefined => localGames.get(key),
   set: (key: string, value: SpielState): void => { localGames.set(key, value); },
   delete: (key: string): void => { localGames.delete(key); },
@@ -45,8 +26,22 @@ export async function saveGameState(state: SpielState): Promise<void> {
   if (isLocal) {
     localGames.set(state.id, state);
   } else {
-    const r = await getRedis();
-    await r.set(`${GAME_PREFIX}${state.id}`, JSON.stringify(state), { EX: 3600 }); // 1h TTL
+    const db = getDb();
+    // Upsert: Insert or Update
+    await db
+      .insert(activeGames)
+      .values({
+        roomId: state.id,
+        state: state as unknown as Record<string, unknown>,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: activeGames.roomId,
+        set: {
+          state: state as unknown as Record<string, unknown>,
+          updatedAt: new Date(),
+        },
+      });
   }
 }
 
@@ -54,17 +49,24 @@ export async function loadGameState(roomId: string): Promise<SpielState | undefi
   if (isLocal) {
     return localGames.get(roomId);
   }
-  const r = await getRedis();
-  const data = await r.get(`${GAME_PREFIX}${roomId}`);
-  return data ? JSON.parse(data) : undefined;
+
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(activeGames)
+    .where(eq(activeGames.roomId, roomId));
+
+  if (!row) return undefined;
+
+  return row.state as unknown as SpielState;
 }
 
 export async function deleteGameState(roomId: string): Promise<void> {
   if (isLocal) {
     localGames.delete(roomId);
   } else {
-    const r = await getRedis();
-    await r.del(`${GAME_PREFIX}${roomId}`);
+    const db = getDb();
+    await db.delete(activeGames).where(eq(activeGames.roomId, roomId));
   }
 }
 
@@ -125,7 +127,7 @@ export function erstelleSpiel(
     augenGegner: 0,
   };
 
-  activeGames.set(raumId, state);
+  activeGamesMap.set(raumId, state);
   return state;
 }
 
@@ -513,7 +515,7 @@ export function getSpielState(raumId: string): SpielState | undefined {
 }
 
 /**
- * Holt den aktuellen Spielzustand (async für Produktion mit KV)
+ * Holt den aktuellen Spielzustand (async für Produktion mit PostgreSQL)
  */
 export async function getSpielStateAsync(raumId: string): Promise<SpielState | undefined> {
   return loadGameState(raumId);

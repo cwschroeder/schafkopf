@@ -1,33 +1,12 @@
-// Raum-Verwaltung mit Redis für Produktion
+// Raum-Verwaltung mit PostgreSQL für Produktion
 
-import { createClient, RedisClientType } from 'redis';
+import { getDb, rooms } from './db';
+import { eq, ne, and, gt, sql } from 'drizzle-orm';
 import { Raum } from './schafkopf/types';
 
-const ROOM_PREFIX = 'room:';
-const ROOMS_LIST_KEY = 'rooms:list';
-
-// Fallback für lokale Entwicklung ohne Redis
+// Fallback für lokale Entwicklung ohne Datenbank
 const localRooms = new Map<string, Raum>();
-const isLocal = !process.env.REDIS_URL;
-
-// Redis-Client (Lazy Init mit Connection Pooling)
-let redis: RedisClientType | null = null;
-let redisConnecting: Promise<RedisClientType> | null = null;
-
-async function getRedis(): Promise<RedisClientType> {
-  if (redis?.isOpen) return redis;
-
-  if (redisConnecting) return redisConnecting;
-
-  redisConnecting = (async () => {
-    redis = createClient({ url: process.env.REDIS_URL });
-    redis.on('error', (err) => console.error('Redis Error:', err));
-    await redis.connect();
-    return redis;
-  })();
-
-  return redisConnecting;
-}
+const isLocal = !process.env.DATABASE_URL;
 
 export function generateRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -51,9 +30,15 @@ export async function createRoom(name: string, erstellerId: string, erstellerNam
   if (isLocal) {
     localRooms.set(room.id, room);
   } else {
-    const r = await getRedis();
-    await r.set(`${ROOM_PREFIX}${room.id}`, JSON.stringify(room), { EX: 3600 });
-    await r.sAdd(ROOMS_LIST_KEY, room.id);
+    const db = getDb();
+    await db.insert(rooms).values({
+      id: room.id,
+      name: room.name,
+      erstellerId: room.ersteller,
+      spieler: room.spieler,
+      status: room.status,
+      erstelltAm: new Date(room.erstelltAm),
+    });
   }
 
   return room;
@@ -192,60 +177,76 @@ export async function getRoom(roomId: string): Promise<Raum | undefined> {
   if (isLocal) {
     return localRooms.get(roomId);
   }
-  const r = await getRedis();
-  const data = await r.get(`${ROOM_PREFIX}${roomId}`);
-  return data ? JSON.parse(data) : undefined;
+
+  const db = getDb();
+  const [row] = await db.select().from(rooms).where(eq(rooms.id, roomId));
+
+  if (!row) return undefined;
+
+  return {
+    id: row.id,
+    name: row.name,
+    spieler: row.spieler,
+    maxSpieler: 4,
+    status: row.status as 'offen' | 'voll' | 'laeuft',
+    ersteller: row.erstellerId,
+    erstelltAm: row.erstelltAm.getTime(),
+  };
 }
 
 export async function getAllRooms(): Promise<Raum[]> {
   const MAX_AGE_MS = 60 * 60 * 1000; // 1 Stunde
-  const now = Date.now();
+  const cutoffTime = new Date(Date.now() - MAX_AGE_MS);
 
   if (isLocal) {
+    const now = Date.now();
     return Array.from(localRooms.values()).filter(r =>
       r.status !== 'laeuft' && (now - (r.erstelltAm || 0)) < MAX_AGE_MS
     );
   }
 
-  const r = await getRedis();
-  const roomIds = await r.sMembers(ROOMS_LIST_KEY);
-  if (!roomIds || roomIds.length === 0) return [];
+  const db = getDb();
 
-  const rooms: Raum[] = [];
-  const expiredIds: string[] = [];
+  // Nur nicht-laufende und nicht zu alte Räume anzeigen
+  const rows = await db
+    .select()
+    .from(rooms)
+    .where(and(
+      ne(rooms.status, 'laeuft'),
+      gt(rooms.erstelltAm, cutoffTime)
+    ));
 
-  for (const id of roomIds) {
-    const data = await r.get(`${ROOM_PREFIX}${id}`);
-    if (data) {
-      const room = JSON.parse(data) as Raum;
-      const age = now - (room.erstelltAm || 0);
-      // Nur nicht-laufende und nicht zu alte Räume anzeigen
-      if (room.status !== 'laeuft' && age < MAX_AGE_MS) {
-        rooms.push(room);
-      } else if (age >= MAX_AGE_MS) {
-        expiredIds.push(id);
-      }
-    } else {
-      // Raum existiert nicht mehr in Redis, aus Liste entfernen
-      expiredIds.push(id);
-    }
-  }
+  // Alte Räume aufräumen (async, nicht blockierend)
+  cleanupOldRooms(cutoffTime).catch(err => {
+    console.error('[Rooms] Cleanup error:', err);
+  });
 
-  // Alte/gelöschte Räume aus der Liste entfernen
-  if (expiredIds.length > 0) {
-    await r.sRem(ROOMS_LIST_KEY, expiredIds);
-  }
+  return rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    spieler: row.spieler,
+    maxSpieler: 4 as const,
+    status: row.status as 'offen' | 'voll' | 'laeuft',
+    ersteller: row.erstellerId,
+    erstelltAm: row.erstelltAm.getTime(),
+  }));
+}
 
-  return rooms;
+async function cleanupOldRooms(cutoffTime: Date): Promise<void> {
+  if (isLocal) return;
+
+  const db = getDb();
+  await db.delete(rooms).where(
+    sql`${rooms.erstelltAm} < ${cutoffTime}`
+  );
 }
 
 export async function deleteRoom(roomId: string): Promise<void> {
   if (isLocal) {
     localRooms.delete(roomId);
   } else {
-    const r = await getRedis();
-    await r.del(`${ROOM_PREFIX}${roomId}`);
-    await r.sRem(ROOMS_LIST_KEY, roomId);
+    const db = getDb();
+    await db.delete(rooms).where(eq(rooms.id, roomId));
   }
 }
 
@@ -253,7 +254,15 @@ async function saveRoom(room: Raum): Promise<void> {
   if (isLocal) {
     localRooms.set(room.id, room);
   } else {
-    const r = await getRedis();
-    await r.set(`${ROOM_PREFIX}${room.id}`, JSON.stringify(room), { EX: 3600 });
+    const db = getDb();
+    await db
+      .update(rooms)
+      .set({
+        name: room.name,
+        erstellerId: room.ersteller,
+        spieler: room.spieler,
+        status: room.status,
+      })
+      .where(eq(rooms.id, room.id));
   }
 }
