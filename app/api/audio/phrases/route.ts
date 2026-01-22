@@ -267,8 +267,9 @@ export async function POST(request: NextRequest) {
     // Neue Stimme setzen (voiceKey = m1, m2, f1, f2)
     if (voiceKey && audioFile) {
       const validKeys: VoiceKey[] = ['m1', 'm2', 'f1', 'f2'];
-      if (validKeys.includes(voiceKey)) {
-        manifest[originalSpeech][voiceKey] = audioFile;
+      if (validKeys.includes(voiceKey as VoiceKey)) {
+        const key = voiceKey as VoiceKey;
+        manifest[originalSpeech][key] = audioFile;
       }
     }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QuizQuestion as QuizQuestionType } from '@/lib/tutorial/types';
 import { hapticTap, hapticSuccess, hapticError } from '@/lib/haptics';
 import Card from '@/components/Card';
@@ -20,6 +20,12 @@ export default function QuizQuestion({
 }: QuizQuestionProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+
+  // State zurücksetzen wenn eine neue Frage kommt
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setShowResult(false);
+  }, [question]);
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;
@@ -160,7 +166,7 @@ export default function QuizQuestion({
                 className={`p-2 rounded-lg border-2 transition-all ${getButtonStyle(cardId)}`}
               >
                 <Card
-                  karte={{ farbe: farbe as any, wert: wert as any }}
+                  karte={{ id: cardId, farbe: farbe as any, wert: wert as any }}
                   size="md"
                   onClick={() => {}}
                 />

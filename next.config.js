@@ -59,6 +59,7 @@ const nextConfig = {
   assetPrefix: '/schafkopf',
   env: {
     NEXT_PUBLIC_BASE_PATH: '/schafkopf',
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
 };
 

@@ -7,16 +7,44 @@ import { useGameStore, loadPlayerFromStorage, savePlayerToStorage } from '@/lib/
 import UserMenu from '@/components/auth/UserMenu';
 import { hapticTap } from '@/lib/haptics';
 
+// Aktuelle Build-Zeit (eingebettet beim Build)
+const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME || '';
+
+function formatBuildTime(isoString: string): string {
+  if (!isoString) return '';
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
+
 export default function Home() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const { playerId, playerName, setPlayer } = useGameStore();
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [serverBuildTime, setServerBuildTime] = useState<string | null>(null);
 
   // Authentifizierter User?
   const isAuthenticated = !!session?.user;
   const authUserName = session?.user?.name || '';
+
+  // Server-Version laden
+  useEffect(() => {
+    fetch('/schafkopf/api/version')
+      .then(res => res.json())
+      .then(data => setServerBuildTime(data.buildTime))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Prüfen ob bereits ein Spieler gespeichert ist
@@ -112,6 +140,17 @@ export default function Home() {
           >
             Zur Lobby
           </button>
+
+          {/* Tutorial Button */}
+          <button
+            onClick={() => {
+              hapticTap();
+              router.push('/lernen');
+            }}
+            className="w-full py-3 text-lg rounded-lg border-2 border-amber-600 text-amber-400 hover:bg-amber-600/20 transition-colors"
+          >
+            Schafkopf lernen
+          </button>
         </div>
 
         {/* Spielinfo */}
@@ -124,6 +163,23 @@ export default function Home() {
             <li>KI-Bots füllen fehlende Spieler auf</li>
           </ul>
         </div>
+      </div>
+
+      {/* Version-Anzeige */}
+      <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500">
+        {BUILD_TIME && (
+          <span>
+            App: {formatBuildTime(BUILD_TIME)}
+            {serverBuildTime && serverBuildTime !== BUILD_TIME && (
+              <span className="text-amber-400 ml-2">
+                • Server: {formatBuildTime(serverBuildTime)} (neu!)
+              </span>
+            )}
+            {serverBuildTime && serverBuildTime === BUILD_TIME && (
+              <span className="text-green-500 ml-2">✓</span>
+            )}
+          </span>
+        )}
       </div>
     </main>
   );

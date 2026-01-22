@@ -9,6 +9,9 @@
 
   /* Touch-Target Mindestgröße */
   --touch-target-min: 44px;
+
+  /* Spieltisch Aspect Ratio - passt sich an Bildschirmgröße an */
+  --table-aspect: 4/3;
 }
 
 /* Sehr kleine Screens (iPhone SE, etc.) */
@@ -24,6 +27,19 @@
   :root {
     --card-width: 80px;
     --card-height: 120px;
+  }
+}
+
+/* Desktop: Breiteres Spieltisch-Format für bessere Platznutzung */
+@media (min-width: 768px) {
+  :root {
+    --table-aspect: 16/10;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --table-aspect: 16/9;
   }
 }
 
@@ -367,10 +383,16 @@ input[type="text"]::placeholder {
 }
 
 /* Fullscreen / PWA Modus */
-html, body {
+html {
   height: 100%;
   height: 100dvh; /* Dynamic viewport height - passt sich an wenn Browser-Chrome verschwindet */
+}
+
+body {
+  min-height: 100%;
+  min-height: 100dvh;
   overscroll-behavior: none; /* Verhindert Pull-to-Refresh */
+  overflow-y: auto; /* Ermöglicht Scrollen */
 }
 
 /* Landscape-Optimierung für Mobile */
@@ -394,6 +416,23 @@ html, body {
   .game-table {
     max-width: min(95vw, 130vh) !important;
     max-height: 95vh !important;
+  }
+
+  /* Hand-Karten kleiner im Landscape */
+  .hand-card .card {
+    width: 48px !important;
+    height: 87px !important;
+  }
+
+  /* Hand weiter unten positionieren damit Stich sichtbar bleibt */
+  .player-hand {
+    bottom: 0 !important;
+    gap: 2px !important;
+  }
+
+  /* Spieler-Info unter Hand kompakter */
+  .player-hand .text-xs {
+    font-size: 9px;
   }
 }
 
@@ -473,6 +512,22 @@ html, body {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Toast Animation */
+@keyframes toastSlideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: toastSlideDown 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ==================== */

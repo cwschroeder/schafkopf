@@ -36,7 +36,7 @@ interface CardProps {
   preSelected?: boolean; // Vorauswahl wenn nicht am Zug
   disabled?: boolean;
   hidden?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'hand' | 'stich';
   className?: string;
 }
 
@@ -51,9 +51,14 @@ export default function Card({
   className = '',
 }: CardProps) {
   const sizeConfig = {
-    sm: { width: 48, height: 87, className: 'w-12 h-[87px]' },
-    md: { width: 60, height: 109, className: 'w-[60px] h-[109px] sm:w-[80px] sm:h-[145px]' },
+    xs: { width: 40, height: 73, className: 'w-10 h-[73px]' },
+    sm: { width: 56, height: 102, className: 'w-14 h-[102px]' },
+    md: { width: 72, height: 131, className: 'w-[72px] h-[131px]' },
     lg: { width: 96, height: 175, className: 'w-24 h-[175px]' },
+    // Hand: Responsive Größe für Spielerhand - deutlich größer auf Desktop
+    hand: { width: 60, height: 109, className: 'w-[60px] h-[109px] xs:w-[68px] xs:h-[124px] sm:w-[80px] sm:h-[145px] md:w-[100px] md:h-[182px] lg:w-[120px] lg:h-[218px]' },
+    // Stich: Responsive Größe für Karten im Stich
+    stich: { width: 56, height: 102, className: 'w-14 h-[102px] md:w-[72px] md:h-[131px] lg:w-[90px] lg:h-[164px]' },
   };
 
   const config = sizeConfig[size];
@@ -149,11 +154,14 @@ export default function Card({
 }
 
 // Kartenrücken-Komponente
-export function CardBack({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
+export function CardBack({ size = 'md', className = '' }: { size?: 'xs' | 'sm' | 'md' | 'lg' | 'hand' | 'stich'; className?: string }) {
   const sizeConfig = {
-    sm: 'w-12 h-[87px]',
-    md: 'w-[60px] h-[109px] sm:w-[80px] sm:h-[145px]',
+    xs: 'w-10 h-[73px]',
+    sm: 'w-14 h-[102px]',
+    md: 'w-[72px] h-[131px]',
     lg: 'w-24 h-[175px]',
+    hand: 'w-[60px] h-[109px] xs:w-[68px] xs:h-[124px] sm:w-[80px] sm:h-[145px] md:w-[100px] md:h-[182px] lg:w-[120px] lg:h-[218px]',
+    stich: 'w-14 h-[102px] md:w-[72px] md:h-[131px] lg:w-[90px] lg:h-[164px]',
   };
 
   return (

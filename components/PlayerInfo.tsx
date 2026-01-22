@@ -12,6 +12,8 @@ interface PlayerInfoProps {
   isPartner?: boolean;
   isGeber?: boolean;
   showCardCount?: boolean;
+  isWaitingForLegen?: boolean;  // Spieler muss noch Legen-Entscheidung treffen
+  isAusspieler?: boolean;       // Hat als erstes ausgespielt (Vorhand)
 }
 
 export default function PlayerInfo({
@@ -23,6 +25,8 @@ export default function PlayerInfo({
   isPartner = false,
   isGeber = false,
   showCardCount = false,
+  isWaitingForLegen = false,
+  isAusspieler = false,
 }: PlayerInfoProps) {
   // Layout je nach Position anpassen
   const isHorizontal = position === 'left' || position === 'right';
@@ -51,10 +55,14 @@ export default function PlayerInfo({
           color: isMe ? '#1a1a1a' : '#e5d3b3',
           border: isCurrentPlayer
             ? '3px solid #fbbf24'
-            : '1px solid rgba(139,90,43,0.5)',
+            : isWaitingForLegen
+              ? '2px solid #f59e0b'
+              : '1px solid rgba(139,90,43,0.5)',
           boxShadow: isCurrentPlayer
             ? '0 0 20px rgba(251,191,36,0.7), 0 0 40px rgba(124,58,237,0.5), 0 4px 8px rgba(0,0,0,0.4)'
-            : '0 2px 4px rgba(0,0,0,0.3)',
+            : isWaitingForLegen
+              ? '0 0 10px rgba(245,158,11,0.4), 0 2px 4px rgba(0,0,0,0.3)'
+              : '0 2px 4px rgba(0,0,0,0.3)',
         }}
       >
         {/* Bot Icon */}
@@ -82,6 +90,25 @@ export default function PlayerInfo({
         {/* Geber Icon */}
         {isGeber && (
           <span className="text-emerald-400" title="Geber">🃏</span>
+        )}
+
+        {/* Ausspieler (Vorhand) Badge - nur bei Stich 0 */}
+        {isAusspieler && (
+          <span
+            className="px-1 py-0.5 rounded text-xs font-bold"
+            style={{
+              background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+              color: 'white',
+            }}
+            title="Vorhand (spielt aus)"
+          >
+            Vorhand
+          </span>
+        )}
+
+        {/* Wartet auf Legen-Entscheidung */}
+        {isWaitingForLegen && (
+          <span className="text-amber-400" title="Muss noch entscheiden">⏳</span>
         )}
 
         {/* Gelegt Indicator */}

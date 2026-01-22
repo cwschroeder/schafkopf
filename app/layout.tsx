@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import AuthProvider from '@/components/auth/AuthProvider';
 import ThemeProvider from '@/components/ThemeProvider';
+import { UpdateBanner } from '@/components/UpdateBanner';
+import FeedbackButton from '@/components/feedback/FeedbackButton';
+import FeedbackNotificationListener from '@/components/feedback/FeedbackNotificationListener';
+import ToastContainer from '@/components/Toast';
 
 export const metadata: Metadata = {
   title: 'Schafkopf Online',
@@ -33,10 +37,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="de" className="h-full">
-      <body className="h-full min-h-dvh text-white overflow-hidden">
+      <body className="h-full min-h-dvh text-white">
         <AuthProvider>
           <ThemeProvider>
+            <UpdateBanner />
+            <ToastContainer />
+            <FeedbackNotificationListener />
             {children}
+            <FeedbackButton />
           </ThemeProvider>
         </AuthProvider>
       </body>

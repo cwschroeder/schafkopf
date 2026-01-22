@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { hapticTap } from '@/lib/haptics';
 import { loadTutorialProgress } from '@/lib/tutorial/progress';
-import { LESSONS, LESSON_CATEGORIES, getLessonsByCategory } from '@/lib/tutorial/lessons';
+import { LESSON_CATEGORIES, getLessonsByCategory } from '@/lib/tutorial/lessons';
 import { UserTutorialState } from '@/lib/tutorial/types';
 import LessonCard from '@/components/tutorial/LessonCard';
 
-export default function LektionenPage() {
+function LektionenContent() {
   const searchParams = useSearchParams();
   const filterCategory = searchParams.get('kategorie');
 
@@ -53,7 +53,7 @@ export default function LektionenPage() {
         </div>
 
         {/* Kategorie-Filter */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2.5">
           <button
             onClick={() => {
               hapticTap();
@@ -94,7 +94,7 @@ export default function LektionenPage() {
               <span className="text-amber-100/50 text-sm">- {cat.description}</span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {cat.lessons.map(lesson => {
                 const lessonProgress = progress?.lessonProgress[lesson.id];
                 const isUnlocked = progress?.unlockedLessons.includes(lesson.id) ?? false;
@@ -121,5 +121,19 @@ export default function LektionenPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function LektionenPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-amber-400">Laden...</div>
+        </div>
+      }
+    >
+      <LektionenContent />
+    </Suspense>
   );
 }

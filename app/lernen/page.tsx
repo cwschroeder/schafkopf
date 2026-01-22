@@ -24,7 +24,7 @@ export default function TutorialHome() {
   const hasStarted = completedCount > 0;
 
   return (
-    <main className="min-h-screen p-4 safe-area-top safe-area-bottom">
+    <main className="min-h-screen p-4 safe-area-top safe-area-bottom overflow-y-auto pb-20">
       <div className="max-w-lg mx-auto space-y-6">
         {/* Header */}
         <div className="text-center pt-4">
@@ -133,6 +133,37 @@ export default function TutorialHome() {
                     {progress.practiceGamesPlayed} Spiele gespielt
                   </p>
                 )}
+              </div>
+            </div>
+          </button>
+
+          {/* Wissen */}
+          <button
+            onClick={() => {
+              hapticTap();
+              router.push('/wissen');
+            }}
+            className="w-full text-left rounded-xl p-5 transition-all hover:scale-[1.02]"
+            style={{
+              background: 'linear-gradient(135deg, #3e2723 0%, #4e342e 100%)',
+              border: '1px solid rgba(139,90,43,0.5)',
+            }}
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">🎭</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-amber-200 text-lg">Rund ums Schafkopf</h3>
+                  <span
+                    className="px-2 py-0.5 text-xs rounded-full"
+                    style={{ background: '#059669', color: 'white' }}
+                  >
+                    Neu
+                  </span>
+                </div>
+                <p className="text-amber-100/70 text-sm">
+                  Geschichte, Kultur &amp; Sprache
+                </p>
               </div>
             </div>
           </button>

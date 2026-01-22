@@ -46,22 +46,33 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
   }, [isCollecting, stich.karten.length, stich.gewinner]);
 
   // Bildschirmgröße für responsive Animationen
-  const [isMobile, setIsMobile] = useState(false);
+  const [screenSize, setScreenSize] = useState<'sm' | 'md' | 'lg'>('sm');
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      if (width >= 1024) setScreenSize('lg');
+      else if (width >= 768) setScreenSize('md');
+      else setScreenSize('sm');
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  const isMobile = screenSize === 'sm';
 
   // Gewinner-Position für Einsammel-Animation berechnen (weiter raus für deutlichere Animation)
   const getCollectPosition = (gewinnerId: string): { x: number; y: number } => {
     const gewinnerIndex = spieler.findIndex(s => s.id === gewinnerId);
     const relativ = (gewinnerIndex - myPosition + 4) % 4;
-    // Größere Distanz für deutlichere Animation
-    const dist = isMobile ? 140 : 200;
-    const distX = isMobile ? 160 : 240;
+    // Größere Distanz für deutlichere Animation - responsive
+    const collectConfig = {
+      sm: { dist: 140, distX: 160 },
+      md: { dist: 220, distX: 280 },
+      lg: { dist: 280, distX: 350 },
+    };
+    const { dist, distX } = collectConfig[screenSize];
     const positions = {
       0: { x: 0, y: dist },      // bottom (ich)
       1: { x: distX, y: 0 },     // right
@@ -79,8 +90,12 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
   };
 
   // Ziel-Positionen für die Karten in der Mitte (responsive)
-  const offset = isMobile ? 18 : 25;
-  const offsetX = isMobile ? 22 : 30;
+  const offsetConfig = {
+    sm: { offset: 18, offsetX: 22 },
+    md: { offset: 35, offsetX: 45 },
+    lg: { offset: 50, offsetX: 60 },
+  };
+  const { offset, offsetX } = offsetConfig[screenSize];
   const cardPositions: Record<string, { x: number; y: number; rotation: number }> = {
     bottom: { x: 0, y: offset, rotation: 5 },
     top: { x: 0, y: -offset, rotation: -5 },
@@ -89,8 +104,12 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
   };
 
   // Start-Positionen (von wo die Karten kommen) - responsive
-  const startDist = isMobile ? 80 : 120;
-  const startDistX = isMobile ? 100 : 140;
+  const startConfig = {
+    sm: { startDist: 80, startDistX: 100 },
+    md: { startDist: 140, startDistX: 180 },
+    lg: { startDist: 180, startDistX: 220 },
+  };
+  const { startDist, startDistX } = startConfig[screenSize];
   const startPositions: Record<string, { x: number; y: number }> = {
     bottom: { x: 0, y: startDist },
     top: { x: 0, y: -startDist },
@@ -103,7 +122,7 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
     : null;
 
   return (
-    <div className="relative w-44 h-44 sm:w-52 sm:h-52">
+    <div className="relative w-44 h-44 sm:w-52 sm:h-52 md:w-72 md:h-72 lg:w-96 lg:h-96">
       {stich.karten.map((k, index) => {
         const spielerIndex = spieler.findIndex(s => s.id === k.spielerId);
         const position = getRelativePosition(spielerIndex);
@@ -149,7 +168,7 @@ export default function Stich({ stich, spieler, myPosition, onTakeTrick, isColle
               zIndex: index + 1,
             }}
           >
-            <Card karte={k.karte} size="sm" />
+            <Card karte={k.karte} size="stich" />
             {/* Name-Label an der Karte */}
             <div
               className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap"

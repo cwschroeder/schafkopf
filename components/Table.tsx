@@ -6,6 +6,8 @@ import { spielbareKarten } from '@/lib/schafkopf/rules';
 import { apiUrl } from '@/lib/api';
 import { kannAusIs } from '@/lib/aus-is';
 import { AUS_IS, randomPhrase, speak } from '@/lib/bavarian-speech';
+import { getSpielzugHint, SpielzugHint } from '@/lib/practice-hints';
+import { hapticTap } from '@/lib/haptics';
 import Hand from './Hand';
 import PlayerInfo from './PlayerInfo';
 import Stich, { LetzterStich } from './Stich';
@@ -21,6 +23,7 @@ interface TableProps {
   onCardPlay: (karteId: string) => void;
   isCollecting?: boolean;
   speechBubble?: { text: string; playerId: string } | null;
+  hintsEnabled?: boolean;
 }
 
 export default function Table({
@@ -33,9 +36,27 @@ export default function Table({
   onCardPlay,
   isCollecting = false,
   speechBubble = null,
+  hintsEnabled = false,
 }: TableProps) {
   const [showLetzterStich, setShowLetzterStich] = useState(false);
   const [infoExpanded, setInfoExpanded] = useState(true);
+  const [showSpielzugHint, setShowSpielzugHint] = useState(false);
+  const [spielzugHint, setSpielzugHint] = useState<SpielzugHint | null>(null);
+
+  const handleShowSpielzugHint = () => {
+    hapticTap();
+    if (!spielzugHint) {
+      const hint = getSpielzugHint(state, myPlayerId);
+      setSpielzugHint(hint);
+    }
+    setShowSpielzugHint(!showSpielzugHint);
+  };
+
+  // Reset hint when turn changes
+  useEffect(() => {
+    setShowSpielzugHint(false);
+    setSpielzugHint(null);
+  }, [state.aktuellerSpieler, state.stichNummer]);
 
   // Auto-Minimize nach 3 Sekunden wenn expanded
   useEffect(() => {
@@ -75,10 +96,34 @@ export default function Table({
       ).map(k => k.id)
     : [];
 
+  // Ausspieler (Vorhand) ist rechts vom Geber
+  const ausspielerPosition = (state.geber + 1) % 4;
+
+  // Hilfsfunktion für erweiterte PlayerInfo Props
+  const getPlayerInfoProps = (spieler: typeof spielerTop, relativePosition: number) => {
+    const absolutePosition = (myIndex + relativePosition) % 4;
+    return {
+      // Bei Legen-Phase: Wer wartet noch? (nicht sich selbst markieren)
+      isWaitingForLegen:
+        state.phase === 'legen' &&
+        !state.legenEntscheidungen?.includes(spieler.id) &&
+        spieler.id !== myPlayerId,
+      // Bei Ansagen-Phase: Wer ist dran?
+      isCurrentPlayer:
+        (state.phase === 'spielen' && state.aktuellerSpieler === absolutePosition) ||
+        (state.phase === 'ansagen' && state.aktuellerAnsager === absolutePosition),
+      // Ausspieler (Vorhand) - nur bei Stich 0 anzeigen
+      isAusspieler:
+        state.phase === 'spielen' &&
+        state.stichNummer === 0 &&
+        absolutePosition === ausspielerPosition,
+    };
+  };
+
   return (
     <div
       className="relative w-full h-full max-h-full game-table"
-      style={{ aspectRatio: '4/3', maxWidth: 'min(100%, 130vh)' }}
+      style={{ aspectRatio: 'var(--table-aspect, 4/3)', maxWidth: 'min(100%, 160vh)' }}
     >
       {/* Holztisch-Hintergrund */}
       <div
@@ -184,10 +229,10 @@ export default function Table({
       })()}
 
       {/* Spieler oben */}
-      <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2">
+      <div className="absolute top-4 sm:top-6 md:top-8 lg:top-10 left-1/2 -translate-x-1/2">
         <PlayerInfo
           spieler={spielerTop}
-          isCurrentPlayer={state.aktuellerSpieler === (myIndex + 2) % 4}
+          {...getPlayerInfoProps(spielerTop, 2)}
           position="top"
           isSpielmacher={state.spielmacher === spielerTop.id}
           isPartner={state.partner === spielerTop.id}
@@ -200,10 +245,10 @@ export default function Table({
       </div>
 
       {/* Spieler rechts */}
-      <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2">
+      <div className="absolute right-2 sm:right-4 md:right-8 lg:right-12 top-1/2 -translate-y-1/2">
         <PlayerInfo
           spieler={spielerRight}
-          isCurrentPlayer={state.aktuellerSpieler === (myIndex + 1) % 4}
+          {...getPlayerInfoProps(spielerRight, 1)}
           position="right"
           isSpielmacher={state.spielmacher === spielerRight.id}
           isPartner={state.partner === spielerRight.id}
@@ -216,10 +261,10 @@ export default function Table({
       </div>
 
       {/* Spieler links */}
-      <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2">
+      <div className="absolute left-2 sm:left-4 md:left-8 lg:left-12 top-1/2 -translate-y-1/2">
         <PlayerInfo
           spieler={spielerLeft}
-          isCurrentPlayer={state.aktuellerSpieler === (myIndex + 3) % 4}
+          {...getPlayerInfoProps(spielerLeft, 3)}
           position="left"
           isSpielmacher={state.spielmacher === spielerLeft.id}
           isPartner={state.partner === spielerLeft.id}
@@ -231,8 +276,48 @@ export default function Table({
         )}
       </div>
 
+      {/* Spielzug-Tipp Button (nur bei Übungsspiel und wenn am Zug) */}
+      {hintsEnabled && isMyTurn && state.phase === 'spielen' && (
+        <div className="absolute bottom-44 sm:bottom-52 left-1/2 -translate-x-1/2 z-[46] flex flex-col items-center gap-2">
+          <button
+            onClick={handleShowSpielzugHint}
+            className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all shadow-lg"
+            style={{
+              background: showSpielzugHint ? 'rgba(217, 119, 6, 0.9)' : 'rgba(139,90,43,0.9)',
+              border: '1px solid rgba(217, 119, 6, 0.7)',
+              color: '#fbbf24',
+            }}
+          >
+            <span>💡</span>
+            {showSpielzugHint ? 'Tipp ausblenden' : 'Tipp anzeigen'}
+          </button>
+
+          {/* Hint-Anzeige */}
+          {showSpielzugHint && spielzugHint && (
+            <div
+              className="rounded-lg p-3 text-sm max-w-xs shadow-xl"
+              style={{
+                background: 'rgba(62, 39, 35, 0.95)',
+                border: '1px solid rgba(34, 197, 94, 0.4)',
+              }}
+            >
+              <p className="font-semibold text-green-400 mb-2">
+                {spielzugHint.grund}
+              </p>
+              {spielzugHint.details.length > 0 && (
+                <ul className="text-amber-100/70 text-xs space-y-1">
+                  {spielzugHint.details.map((detail, i) => (
+                    <li key={i}>• {detail}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Meine Karten (unten) - z-45 damit über Ansage-Backdrop sichtbar */}
-      <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 sm:gap-2 z-[45]">
+      <div className="player-hand absolute bottom-2 sm:bottom-4 md:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 sm:gap-2 z-[45]">
         <Hand
           karten={state.phase === 'legen' ? mySpieler.hand.slice(0, 3) : mySpieler.hand}
           spielbareKarten={meineSpielbarenKarten}
@@ -245,7 +330,7 @@ export default function Table({
         />
         <PlayerInfo
           spieler={spielerBottom}
-          isCurrentPlayer={isMyTurn}
+          {...getPlayerInfoProps(spielerBottom, 0)}
           isMe={true}
           position="bottom"
           isSpielmacher={state.spielmacher === spielerBottom.id}
@@ -317,23 +402,40 @@ export default function Table({
         )}
       </div>
 
-      {/* Kontra/Re Buttons - bis man selbst ausgespielt hat */}
+      {/* Kontra/Re Buttons - bis man selbst dran ist */}
       {(() => {
-        // Kontra möglich: Bis man selbst eine Karte gespielt hat
-        // Prüfe ob ich bereits in einem Stich gespielt habe
-        const hatSchonGespielt = state.stichNummer > 0 ||
-          state.aktuellerStich.karten.some(k => k.spielerId === myPlayerId);
+        // Solo-Spiel = kein Partner (Wenz, Geier, Farbsolo)
+        const isSoloGame = state.spielmacher && !state.partner;
 
-        const showKontraRe = (state.phase === 'spielen' || state.phase === 'stich-ende') && !hatSchonGespielt;
+        // Kontra möglich:
+        // 1. Bei Solo: Sofort wenn jemand ansagt (auch während ansagen-Phase)
+        // 2. Bei anderen Spielen: Während spielen-Phase, bis man selbst dran ist
+        const istGegner = state.spielmacher !== myPlayerId && state.partner !== myPlayerId;
 
-        if (!showKontraRe) return null;
+        // Du kann gegeben werden bis man selbst am Zug ist
+        const isMyTurnToPlay = state.aktuellerSpieler === myIndex && state.phase === 'spielen';
+
+        // Zeige Du-Button:
+        // - Bei Solo: Ab Ansage bis eigener Zug
+        // - Bei anderen: Ab Spielbeginn bis eigener Zug
+        const showDuButton = !state.kontra && istGegner && !isMyTurnToPlay && (
+          (isSoloGame && (state.phase === 'ansagen' || state.phase === 'spielen' || state.phase === 'stich-ende')) ||
+          (!isSoloGame && (state.phase === 'spielen' || state.phase === 'stich-ende'))
+        );
+
+        // Re kann gegeben werden bis Spielmacher/Partner dran ist
+        const istSpielmacherTeam = state.spielmacher === myPlayerId || state.partner === myPlayerId;
+        const showReButton = state.kontra && !state.re && istSpielmacherTeam && !isMyTurnToPlay &&
+          (state.phase === 'spielen' || state.phase === 'stich-ende');
+
+        if (!showDuButton && !showReButton) return null;
 
         return (
           <div className="absolute top-6 sm:top-10 right-6 sm:right-10 flex gap-2">
-            {!state.kontra && state.spielmacher !== myPlayerId && state.partner !== myPlayerId && (
+            {showDuButton && (
               <KontraButton roomId={state.id} playerId={myPlayerId} />
             )}
-            {state.kontra && !state.re && (state.spielmacher === myPlayerId || state.partner === myPlayerId) && (
+            {showReButton && (
               <ReButton roomId={state.id} playerId={myPlayerId} />
             )}
           </div>

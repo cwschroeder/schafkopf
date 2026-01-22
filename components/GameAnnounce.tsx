@@ -1,16 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Ansage, Farbe, Karte, Spielart } from '@/lib/schafkopf/types';
+import { Ansage, Farbe, Karte, Spielart, Spieler } from '@/lib/schafkopf/types';
 import { istTrumpf } from '@/lib/schafkopf/rules';
 import { hapticTap } from '@/lib/haptics';
 import Card from './Card';
 import FarbIcon from './FarbIcon';
+import { getAnsageHint, AnsageHint } from '@/lib/practice-hints';
 
 interface GameAnnounceProps {
   hand: Karte[];
   onAnsage: (ansage: Ansage, gesuchteAss?: Farbe) => void;
   bisherigeHoechsteAnsage?: Spielart | null;
+  bisherigeAnsagen?: { position: number; ansage: Ansage }[];
+  hintsEnabled?: boolean;
+  spieler?: Spieler[]; // Für Spielernamen bei bisherigen Ansagen
 }
 
 // Bottom Sheet Wrapper Komponente
@@ -50,10 +54,36 @@ export default function GameAnnounce({
   hand,
   onAnsage,
   bisherigeHoechsteAnsage,
+  bisherigeAnsagen = [],
+  hintsEnabled = false,
+  spieler = [],
 }: GameAnnounceProps) {
   const [showSauSelection, setShowSauSelection] = useState(false);
   const [showSoloSelection, setShowSoloSelection] = useState(false);
   const [toutMode, setToutMode] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [hint, setHint] = useState<AnsageHint | null>(null);
+
+  const handleShowHint = () => {
+    hapticTap();
+    if (!hint) {
+      setHint(getAnsageHint(hand, bisherigeAnsagen));
+    }
+    setShowHint(!showHint);
+  };
+
+  // Hilfsfunktion für Ansage-Namen
+  const ansageZuText = (ansage: Ansage): string => {
+    if (ansage === 'weiter') return 'Weiter (Passen)';
+    if (ansage === 'sauspiel') return 'Sauspiel';
+    if (ansage === 'wenz') return 'Wenz';
+    if (ansage === 'geier') return 'Geier';
+    if (ansage.startsWith('farbsolo-')) {
+      const farbe = ansage.replace('farbsolo-', '').replace('-tout', '');
+      return `${farbe.charAt(0).toUpperCase() + farbe.slice(1)}-Solo`;
+    }
+    return ansage;
+  };
 
   // Welche Sauspiel-Farben sind möglich?
   const moeglicheSauFarben: Farbe[] = (['eichel', 'gras', 'schellen'] as Farbe[]).filter(farbe => {
@@ -195,8 +225,36 @@ export default function GameAnnounce({
     color: 'white',
   } : undefined;
 
+  // Hilfsfunktion für Ansage-Kurztext
+  const ansageKurztext = (ansage: Ansage): string => {
+    if (ansage === 'weiter') return 'weiter';
+    if (ansage === 'sauspiel') return 'Sau';
+    if (ansage === 'wenz') return 'Wenz';
+    if (ansage === 'geier') return 'Geier';
+    if (ansage.startsWith('farbsolo-')) return 'Solo';
+    return ansage;
+  };
+
   return (
     <BottomSheet>
+      {/* Bisherige Ansagen anzeigen */}
+      {bisherigeAnsagen.length > 0 && spieler.length > 0 && (
+        <div className="mb-3 pb-2 border-b border-amber-800/30">
+          <p className="text-xs text-amber-200/70 text-center flex flex-wrap justify-center gap-x-2">
+            {bisherigeAnsagen.map((a, i) => {
+              const spielerName = spieler[a.position]?.name || `Spieler ${a.position + 1}`;
+              return (
+                <span key={i} className="inline-flex items-center gap-1">
+                  <span className="font-medium text-amber-300">{spielerName}:</span>
+                  <span>{ansageKurztext(a.ansage)}</span>
+                  {i < bisherigeAnsagen.length - 1 && <span className="text-amber-800">·</span>}
+                </span>
+              );
+            })}
+          </p>
+        </div>
+      )}
+
       {/* Kartenvorschau - damit man sieht was man hat */}
       <div className="mb-3">
         <div className="flex justify-center items-end">
@@ -214,6 +272,52 @@ export default function GameAnnounce({
           ))}
         </div>
       </div>
+
+      {/* Tipp-Button (nur bei Übungsspiel) */}
+      {hintsEnabled && (
+        <div className="mb-3">
+          <button
+            onClick={handleShowHint}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: showHint ? 'rgba(217, 119, 6, 0.3)' : 'rgba(139,90,43,0.3)',
+              border: '1px solid rgba(217, 119, 6, 0.5)',
+              color: '#fbbf24',
+            }}
+          >
+            <span>💡</span>
+            {showHint ? 'Tipp ausblenden' : 'Tipp anzeigen'}
+          </button>
+
+          {/* Hint-Anzeige */}
+          {showHint && hint && (
+            <div
+              className="rounded-lg p-3 text-sm mt-2"
+              style={{
+                background: hint.empfehlung !== 'weiter'
+                  ? 'rgba(34, 197, 94, 0.15)'
+                  : 'rgba(139,90,43,0.2)',
+                border: hint.empfehlung !== 'weiter'
+                  ? '1px solid rgba(34, 197, 94, 0.4)'
+                  : '1px solid rgba(139,90,43,0.4)',
+              }}
+            >
+              <p className="font-semibold text-amber-200 mb-2">
+                {hint.empfehlung !== 'weiter' ? `✅ Empfehlung: ${ansageZuText(hint.empfehlung)}` : '❌ Empfehlung: Weiter (Passen)'}
+                {hint.gesuchteAss && ` auf ${hint.gesuchteAss.charAt(0).toUpperCase() + hint.gesuchteAss.slice(1)}`}
+              </p>
+              <p className="text-amber-100/80 mb-2">{hint.grund}</p>
+              {hint.details.length > 0 && (
+                <ul className="text-amber-100/60 text-xs space-y-1">
+                  {hint.details.map((detail, i) => (
+                    <li key={i}>• {detail}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tout Toggle */}
       <div className="flex items-center justify-center gap-3 mb-4">

@@ -183,6 +183,14 @@ export default function Lobby() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/wissen"
+              onClick={() => hapticTap()}
+              className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
+              title="Wissen rund ums Schafkopf"
+            >
+              📚
+            </Link>
+            <Link
               href="/leaderboard"
               onClick={() => hapticTap()}
               className="text-amber-400 hover:text-amber-300 text-sm transition-colors"

@@ -54,12 +54,70 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, roomId, roomName, playerId, playerName } = body;
+    const { action, roomId, roomName, playerId, playerName, isPractice } = body;
 
     switch (action) {
       case 'create': {
         const id = playerId || generatePlayerId();
-        const room = await createRoom(roomName || 'Schafkopf-Tisch', id, playerName);
+
+        // Bei Übungsspiel: Alte Practice-Räume dieses Spielers löschen
+        if (isPractice && id.startsWith('practice_')) {
+          const allRooms = await getAllRooms();
+          for (const oldRoom of allRooms) {
+            // Prüfe ob der Raum diesem Practice-Spieler gehört
+            const hasPracticePlayer = oldRoom.spieler.some(s => s.id === id && !s.isBot);
+            // Oder ob es ein verwaister Practice-Raum ist (nur Bots)
+            const isOrphanedPractice = oldRoom.spieler.every(s => s.isBot);
+            if (hasPracticePlayer || isOrphanedPractice) {
+              console.log(`[Rooms] Lösche alten Practice-Raum: ${oldRoom.id}`);
+              await deleteRoom(oldRoom.id);
+            }
+          }
+        }
+
+        let room = await createRoom(roomName || 'Schafkopf-Tisch', id, playerName);
+
+        // Bei Übungsspiel: Bots hinzufügen und Spiel automatisch starten
+        if (isPractice) {
+          // 3 Bots hinzufügen
+          const roomWithBots = await addBotsToRoom(room.id);
+          if (!roomWithBots) {
+            return NextResponse.json({ error: 'Fehler beim Hinzufügen der Bots' }, { status: 500 });
+          }
+          room = roomWithBots;
+
+          // Spiel starten
+          await startGame(room.id);
+
+          // Game State erstellen und speichern (mit Legen-Phase für Tipps)
+          const gameState = erstelleSpiel(
+            room.id,
+            room.spieler.map(s => ({
+              id: s.id,
+              name: s.name,
+              isBot: s.isBot,
+            })),
+            undefined // vorherigerGeber
+            // Keine skipLegen Option - Anfänger sollen mit Tipp lernen
+          );
+          await saveGameState(gameState);
+
+          // Bots nach kurzer Verzögerung starten
+          setTimeout(async () => {
+            try {
+              const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+              await fetch(`${baseUrl}/api/game`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'triggerBots', roomId: room!.id }),
+              });
+            } catch (e) {
+              console.error('Bot trigger error:', e);
+            }
+          }, 1000);
+
+          return NextResponse.json({ room, playerId: id });
+        }
 
         await triggerPusher(lobbyChannel(), EVENTS.ROOM_CREATED, room);
 

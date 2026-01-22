@@ -1,8 +1,9 @@
 'use client';
 
-import { LessonSection, Spielart } from '@/lib/tutorial/types';
+import React from 'react';
+import { LessonSection } from '@/lib/tutorial/types';
 import Card from '@/components/Card';
-import { Farbe, Wert } from '@/lib/schafkopf/types';
+import { Farbe, Wert, Spielart } from '@/lib/schafkopf/types';
 
 interface LessonContentProps {
   sections: LessonSection[];
@@ -28,10 +29,11 @@ const TRUMP_ORDERS: Record<string, string[]> = {
   geier: ['eichel-ober', 'gras-ober', 'herz-ober', 'schellen-ober'],
 };
 
-function parseCardId(cardId: string): { farbe: Farbe; wert: Wert } {
+function parseCardId(cardId: string): { id: string; farbe: Farbe; wert: Wert } {
   const [farbe, wert] = cardId.split('-');
   // Konvertiere "koenig" zu "koenig", "ass" zu "ass", etc.
   return {
+    id: cardId,
     farbe: farbe as Farbe,
     wert: wert as Wert,
   };
@@ -105,7 +107,7 @@ function TrumpOrder({ spielart, caption }: { spielart: Spielart; caption?: strin
 function MarkdownContent({ content }: { content: string }) {
   // Einfache Markdown-Konvertierung
   const lines = content.trim().split('\n');
-  const elements: JSX.Element[] = [];
+  const elements: React.ReactElement[] = [];
   let inTable = false;
   let tableRows: string[][] = [];
 

@@ -150,12 +150,20 @@ export default function Hand({
     }
   };
 
-  // Überlappung basierend auf Kartenzahl berechnen (mehr Karten = mehr Überlappung)
+  // Überlappung basierend auf Kartenzahl und Bildschirmgröße berechnen
   const getOverlap = () => {
     if (hidden) return '4px';
-    // Auf Mobilgeräten stärkere Überlappung
-    const baseOverlap = karten.length > 4 ? -24 : -18;
-    return `${baseOverlap}px`;
+    // Responsive Überlappung - größere Karten brauchen mehr Überlappung
+    // Mobile: -24px/-18px, Tablet: -32px/-24px, Desktop: -40px/-30px
+    const isMd = typeof window !== 'undefined' && window.innerWidth >= 768;
+    const isLg = typeof window !== 'undefined' && window.innerWidth >= 1024;
+
+    if (isLg) {
+      return karten.length > 4 ? '-40px' : '-30px';
+    } else if (isMd) {
+      return karten.length > 4 ? '-32px' : '-24px';
+    }
+    return karten.length > 4 ? '-24px' : '-18px';
   };
 
   // Berechne Swipe-Offset für Animation
@@ -214,6 +222,7 @@ export default function Hand({
                   selected={isSelected}
                   disabled={!istSpielbar && isCurrentPlayer}
                   hidden={hidden}
+                  size="hand"
                 />
 
                 {/* Swipe-Indikator */}
